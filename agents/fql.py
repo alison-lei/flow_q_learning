@@ -31,7 +31,7 @@ class FQLAgent(flax.struct.PyTreeNode):
         else:
             next_q = next_qs.mean(axis=0)
 
-        target_q = batch['rewards'] + self.config['discount'] * batch['masks'] * next_q
+        target_q = batch['rewards'] + self.config['discount'] * batch['masks'] * next_q # when terminal = 1, stops bootstrapping and guessing next q value
 
         q = self.network.select('critic')(batch['observations'], actions=batch['actions'], params=grad_params)
         critic_loss = jnp.square(q - target_q).mean()
@@ -264,7 +264,7 @@ def get_config():
             alpha=10000.0,  # BC coefficient (need to be tuned for each environment).
             flow_steps=10,  # Number of flow steps.
             normalize_q_loss=False,  # Whether to normalize the Q loss.
-            encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.).
+            encoder=ml_collections.config_dict.placeholder(str),  # Visual encoder name (None, 'impala_small', etc.). For us, is None
         )
     )
     return config

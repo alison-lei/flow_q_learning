@@ -118,6 +118,17 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         eval_env = EpisodeMonitor(eval_env, filter_regexes=['.*privileged.*', '.*proprio.*'])
         train_dataset = Dataset.create(**train_dataset)
         val_dataset = Dataset.create(**val_dataset)
+
+    elif "robomimic-lift" in env_name:
+        # robomimic lift task dataset
+        from envs import robomimic_utils
+        train_dataset = robomimic_utils.lift_dataset("lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
+        print(train_dataset.keys())
+        train_dataset = Dataset.create(**train_dataset)
+        val_dataset = None
+        env = None
+        eval_env = None
+
     elif 'antmaze' in env_name and ('diverse' in env_name or 'play' in env_name or 'umaze' in env_name):
         # D4RL AntMaze.
         from envs import d4rl_utils
@@ -142,8 +153,9 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         env = FrameStackWrapper(env, frame_stack)
         eval_env = FrameStackWrapper(eval_env, frame_stack)
 
-    if env != None and eval_env != None:
+    if env != None:
         env.reset()
+    if eval_env != None:
         eval_env.reset()
 
     # Clip dataset actions.
