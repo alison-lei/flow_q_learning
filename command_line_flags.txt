@@ -1,0 +1,24 @@
+# FQL on OGBench antmaze-large-navigate-singletask-v0 (=antmaze-large-navigate-singletask-task1-v0)
+python main.py --env_name=antmaze-large-navigate-singletask-v0 --agent.q_agg=min --agent.alpha=10
+# FQL on OGBench antmaze-giant-navigate-singletask-v0 (=antmaze-giant-navigate-singletask-task1-v0)
+python main.py --env_name=antmaze-giant-navigate-singletask-v0 --agent.discount=0.995 --agent.q_agg=min --agent.alpha=10
+# FQL on OGBench humanoidmaze-medium-navigate-singletask-v0 (=humanoidmaze-medium-navigate-singletask-task1-v0)
+python main.py --env_name=humanoidmaze-medium-navigate-singletask-v0 --agent.discount=0.995 --agent.alpha=30
+# FQL on OGBench humanoidmaze-large-navigate-singletask-v0 (=humanoidmaze-large-navigate-singletask-task1-v0)
+python main.py --env_name=humanoidmaze-large-navigate-singletask-v0 --agent.discount=0.995 --agent.alpha=30
+# FQL on OGBench antsoccer-arena-navigate-singletask-v0 (=antsoccer-arena-navigate-singletask-task4-v0)
+python main.py --env_name=antsoccer-arena-navigate-singletask-v0 --agent.discount=0.995 --agent.alpha=10
+
+# focus on this task!!
+# FQL on OGBench cube-single-play-singletask-v0 (=cube-single-play-singletask-task2-v0)
+python main.py --env_name=cube-single-play-singletask-v0 --agent.alpha=300
+
+
+# FQL on OGBench cube-double-play-singletask-v0 (=cube-double-play-singletask-task2-v0)
+python main.py --env_name=cube-double-play-singletask-v0 --agent.alpha=300
+# FQL on OGBench scene-play-singletask-v0 (=scene-play-singletask-task2-v0)
+python main.py --env_name=scene-play-singletask-v0 --agent.alpha=300
+# FQL on OGBench puzzle-3x3-play-singletask-v0 (=puzzle-3x3-play-singletask-task4-v0)
+python main.py --env_name=puzzle-3x3-play-singletask-v0 --agent.alpha=1000
+# FQL on OGBench puzzle-4x4-play-singletask-v0 (=puzzle-4x4-play-singletask-task4-v0)
+python main.py --env_name=puzzle-4x4-play-singletask-v0 --agent.alpha=1000
