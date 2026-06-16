@@ -1,2 +1,0 @@
-training/actor/actor_loss,training/actor/bc_flow_loss,training/actor/distill_loss,training/actor/mse,training/actor/q,training/actor/q_loss,training/critic/critic_loss,training/critic/q_max,training/critic/q_mean,training/critic/q_min,training/grad/max,training/grad/min,training/grad/norm,time/epoch_time,time/total_time,step
-2.0938766,0.07086752,0.054382477,0.056994203,-1.4791844,1.4791844,0.01750339,0.05662228,-2.2797413,-9.008536,0.39870983,-0.12364533,5.7523227,0.08231711802482605,411.5855951309204,5000
