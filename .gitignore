@@ -6,5 +6,6 @@ dist/
 .DS_Store
 .idea/
 .ruff_cache/
-exp/
+.venv
+exp
 README.md
