@@ -100,7 +100,17 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         A tuple of the environment, evaluation environment, training dataset, and validation dataset.
     """
 
-    if 'singletask' in env_name:
+    if "robomimic-lift" in env_name:
+        # robomimic lift task dataset
+        from envs import robomimic_utils
+        train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
+        print(train_dataset.keys())
+        train_dataset = Dataset.create(**train_dataset)
+        val_dataset = None
+        env = None
+        eval_env = None
+
+    elif 'singletask' in env_name:
         # OGBench.
         env, train_dataset, val_dataset = ogbench.make_env_and_datasets(env_name)
         eval_env = ogbench.make_env_and_datasets(env_name, env_only=True)
@@ -128,12 +138,13 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
     else:
         raise ValueError(f'Unsupported environment: {env_name}')
 
-    if frame_stack is not None:
+    if frame_stack is not None and env is not None and eval_env is not None:
         env = FrameStackWrapper(env, frame_stack)
         eval_env = FrameStackWrapper(eval_env, frame_stack)
 
-    env.reset()
-    eval_env.reset()
+    if env != None and eval_env != None:
+        env.reset()
+        eval_env.reset()
 
     # Clip dataset actions.
     if action_clip_eps is not None:
