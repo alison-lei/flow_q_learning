@@ -41,4 +41,7 @@ def lift_dataset(path: str) -> dict:
 
     return dataset
 
+def make_env(env_name):
+    pass
+
 # lift_dataset("lift_5_demos_scripted_flow_2026-06-05_01-10-42-709394.pkl")
