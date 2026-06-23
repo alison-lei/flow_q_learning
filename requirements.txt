@@ -12,3 +12,6 @@ gymnasium == 0.29.1  # We can't use gymnasium >= 1.0.0 because it breaks d4rl.
 numpy == 1.26.4  # For d4rl.
 # shimmy[gym-v21,gym-v26]  # For d4rl.
 # Cython < 3  # For d4rl.
+
+# new requirements for setting up environment and evaluating
+robosuite

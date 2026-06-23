@@ -1,6 +1,6 @@
 from re import T
 from turtle import window_width
-from sim_env.envs.modified_wrappers import (
+from modified_wrappers import (
     RLExpertInterventionRG,
     RelativeFrameRG,
     GripperPenaltyWrapper,
@@ -10,8 +10,9 @@ from sim_env.envs.modified_wrappers import (
     ActionFillWrapper,
     RemoveTCPOrientationWrapper,
 )
+# do i need to import this, or delete this
 from serl_launcher.wrappers.chunking import ChunkingWrapper
-from sim_env.envs.modified_wrappers import SERLObsWrapper
+from modified_wrappers import SERLObsWrapper
 
 from franka_env.envs.relative_env import RelativeFrame
 from franka_env.envs.wrappers import GripperCloseEnv, Quat2EulerWrapper
@@ -20,7 +21,7 @@ from train.configs.default_train_cfg import DefaultTrainingConfig
 from sim_env.configs.default_robosuite_cfg import DefaultRobosuiteConfig
 from sim_env.envs.robosuite_base_env import RobosuiteBaseEnv
 
-from train.robot_gated_heurisitcs.heuristics import (
+from heuristics import (
     RandomRobotGatedHeuristicGaussianLength,
     RandomRobotGatedHeuristicEmpirical,
     RandomRobotGatedHeuristicEmpiricalCurriculum,
@@ -43,8 +44,8 @@ class DefaultRobosuiteTrainConfig(DefaultTrainingConfig):
 
     image_keys = ["wrist_1", "side_policy_256"]
     #proprio_keys = ["tcp_pose", "tcp_vel", "gripper_pose", "wrist_force", "wrist_torque"] #for most tasks
-    proprio_keys = ["tcp_pose", "tcp_vel", "wrist_force", "wrist_torque"] #for wipe
-    # proprio_keys = ["tcp_pose", "gripper_pose"] #for flow
+    # proprio_keys = ["tcp_pose", "tcp_vel", "wrist_force", "wrist_torque"] #for wipe
+    proprio_keys = ["tcp_pose", "gripper_pose"] #for flow
     encoder_type = "resnet-pretrained"
     setup_mode = "single-arm-learned-gripper"
     task_desc = ""

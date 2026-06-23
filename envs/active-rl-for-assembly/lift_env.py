@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Literal, List
 
-from sim_env.configs.lift_env_cfg import LiftEnvConfig
+from lift_env_cfg import LiftEnvConfig
 from sim_env.envs.robosuite_base_env import RobosuiteBaseEnv
 import numpy as np
 

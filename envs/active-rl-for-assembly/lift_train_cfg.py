@@ -1,6 +1,6 @@
-from train.configs.default_robosuite_train_cfg import DefaultRobosuiteTrainConfig
-from sim_env.configs.lift_env_cfg import LiftEnvConfig
-from sim_env.envs.lift_env import PandaLiftGymEnv, PandaLiftGymEnvRG
+from default_robosuite_train_cfg import DefaultRobosuiteTrainConfig
+from lift_env_cfg import LiftEnvConfig
+from lift_env import PandaLiftGymEnv, PandaLiftGymEnvRG
 
 class TrainConfig(DefaultRobosuiteTrainConfig):
     max_traj_length = LiftEnvConfig.MAX_EPISODE_LENGTH

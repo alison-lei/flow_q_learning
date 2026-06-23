@@ -122,10 +122,9 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
     elif "robomimic-lift" in env_name:
         # robomimic lift task dataset
         from envs import robomimic_utils
-        train_dataset = robomimic_utils.lift_dataset("lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
-        train_dataset, val_dataset = Dataset.create(**train_dataset), None
-        env = robomimic_utils.make_env("robomimic_lift")
-        eval_env = robomimic_utils.make_env("robomimic_lift")
+        train_dataset = robomimic_utils.lift_dataset("lift_300_demgoos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
+        train_dataset, val_dataset, env = Dataset.create(**train_dataset), None, None
+        eval_env = robomimic_utils.make_eval_env("robomimic_lift")
 
     elif 'antmaze' in env_name and ('diverse' in env_name or 'play' in env_name or 'umaze' in env_name):
         # D4RL AntMaze.
