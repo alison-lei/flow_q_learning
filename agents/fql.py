@@ -19,29 +19,37 @@ class FQLAgent(flax.struct.PyTreeNode):
     network: Any
     config: Any = nonpytree_field()
 
+    # here you are updating the Q values so can later be used to update the actor network
     def critic_loss(self, batch, grad_params, rng):
         """Compute the FQL critic loss."""
         rng, sample_rng = jax.random.split(rng)
         next_actions = self.sample_actions(batch['next_observations'], seed=sample_rng)
         next_actions = jnp.clip(next_actions, -1, 1)
 
+        # Taking a step and calculating the Q value of next state to evaluate Q value in current state taking this action
+        # the action taken does not need to be optimal but the Q value must be the highest one corresponding to the best action
         next_qs = self.network.select('target_critic')(batch['next_observations'], actions=next_actions)
         if self.config['q_agg'] == 'min':
             next_q = next_qs.min(axis=0)
         else:
             next_q = next_qs.mean(axis=0)
 
+        # TD target
         target_q = batch['rewards'] + self.config['discount'] * batch['masks'] * next_q # when terminal = 1, stops bootstrapping and guessing next q value
 
+        # old/current estimate of Q
+        # gradients flow tjprugh so is vru 
         q = self.network.select('critic')(batch['observations'], actions=batch['actions'], params=grad_params)
-        critic_loss = jnp.square(q - target_q).mean()
+        critic_loss = jnp.square(q - target_q).mean() # find difference squared to see the error in previous estimate
 
+        # critic_loss is the temporal difference squared
         return critic_loss, {
             'critic_loss': critic_loss,
             'q_mean': q.mean(),
             'q_max': q.max(),
             'q_min': q.min(),
         }
+        # this critic q value is for updating the params of BC policy
 
     def actor_loss(self, batch, grad_params, rng):
         """Compute the FQL actor loss."""
@@ -50,11 +58,13 @@ class FQLAgent(flax.struct.PyTreeNode):
 
         # BC flow loss.
         x_0 = jax.random.normal(x_rng, (batch_size, action_dim))
+        # the real actions from the dataset
         x_1 = batch['actions']
         t = jax.random.uniform(t_rng, (batch_size, 1))
         x_t = (1 - t) * x_0 + t * x_1
         vel = x_1 - x_0
 
+        # runs the BC flow network given the observation and the noisy action x_t
         pred = self.network.select('actor_bc_flow')(batch['observations'], x_t, t, params=grad_params)
         bc_flow_loss = jnp.mean((pred - vel) ** 2)
 
@@ -66,16 +76,22 @@ class FQLAgent(flax.struct.PyTreeNode):
         distill_loss = jnp.mean((actor_actions - target_flow_actions) ** 2)
 
         # Q loss.
+        # freezed parameters so can evaluate the actor loss based on how high q values are
+        # this is how the actor network is updated based on the critic network
         actor_actions = jnp.clip(actor_actions, -1, 1)
-        qs = self.network.select('critic')(batch['observations'], actions=actor_actions)
+        qs = self.network.select('critic')(batch['observations'], actions=actor_actions) # current estimate of Q in this state, critic for one-step specifically
         q = jnp.mean(qs, axis=0)
 
+        # this is just calculating the current q and is neg so would result in lower loss for higher q
         q_loss = -q.mean()
         if self.config['normalize_q_loss']:
             lam = jax.lax.stop_gradient(1 / jnp.abs(q).mean())
             q_loss = lam * q_loss
 
         # Total loss.
+        # sum of flow matching difference, difference between one step and flow matching, and q loss from critic
+        # trained altogehter, there is flow matching loss (noise to data distribution not perfect)
+        # while it is used to get the distillation loss and train one-step policy
         actor_loss = bc_flow_loss + self.config['alpha'] * distill_loss + q_loss
 
         # Additional metrics for logging.
@@ -99,6 +115,7 @@ class FQLAgent(flax.struct.PyTreeNode):
 
         rng, actor_rng, critic_rng = jax.random.split(rng, 3)
 
+        # critic_loss is just average difference squared between predicted and actual Q
         critic_loss, critic_info = self.critic_loss(batch, grad_params, critic_rng)
         for k, v in critic_info.items():
             info[f'critic/{k}'] = v
@@ -107,6 +124,7 @@ class FQLAgent(flax.struct.PyTreeNode):
         for k, v in actor_info.items():
             info[f'actor/{k}'] = v
 
+        # groups total loss as the sum of critic and actor network loss
         loss = critic_loss + actor_loss
         return loss, info
 
