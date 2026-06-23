@@ -8,6 +8,7 @@ import ogbench
 from gymnasium.spaces import Box
 
 from utils.datasets import Dataset
+from envs import robomimic_utils
 
 
 class EpisodeMonitor(gymnasium.Wrapper):
@@ -101,14 +102,9 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
     """
 
     if "robomimic-lift" in env_name:
-        # robomimic lift task dataset
-        from envs import robomimic_utils
         train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
-        print(train_dataset.keys())
-        train_dataset = Dataset.create(**train_dataset)
-        val_dataset = None
-        env = None
-        eval_env = None
+        train_dataset, val_dataset, env = Dataset.create(**train_dataset), None, None
+        eval_env = robomimic_utils.make_eval_env("robomimic_lift")
 
     elif 'singletask' in env_name:
         # OGBench.
@@ -119,13 +115,6 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         train_dataset = Dataset.create(**train_dataset)
         val_dataset = Dataset.create(**val_dataset)
 
-    elif "robomimic-lift" in env_name:
-        # robomimic lift task dataset
-        from envs import robomimic_utils
-        train_dataset = robomimic_utils.lift_dataset("lift_300_demgoos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
-        train_dataset, val_dataset, env = Dataset.create(**train_dataset), None, None
-        eval_env = robomimic_utils.make_eval_env("robomimic_lift")
-
     elif 'antmaze' in env_name and ('diverse' in env_name or 'play' in env_name or 'umaze' in env_name):
         # D4RL AntMaze.
         from envs import d4rl_utils
@@ -134,6 +123,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         eval_env = d4rl_utils.make_env(env_name)
         dataset = d4rl_utils.get_dataset(env, env_name)
         train_dataset, val_dataset = dataset, None
+
     elif 'pen' in env_name or 'hammer' in env_name or 'relocate' in env_name or 'door' in env_name:
         # D4RL Adroit.
         import d4rl.hand_manipulation_suite  # noqa
