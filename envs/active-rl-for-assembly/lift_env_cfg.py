@@ -1,5 +1,5 @@
 import numpy as np
-from default_robosuite_cfg import DefaultRobosuiteConfig
+from envs.active-rl-for-assembly.default_robosuite_cfg import DefaultRobosuiteConfig
 
 class LiftEnvConfig(DefaultRobosuiteConfig):
     ENV_NAME: str = "FixedCubeLift" #"Lift"

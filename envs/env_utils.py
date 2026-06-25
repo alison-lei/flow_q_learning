@@ -104,7 +104,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
     if "robomimic-lift" in env_name:
         train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
         train_dataset, val_dataset, env = Dataset.create(**train_dataset), None, None
-        eval_env = robomimic_utils.make_eval_env("robomimic_lift")
+        eval_env = robomimic_utils.make_eval_env("robomimic-lift")
 
     elif 'singletask' in env_name:
         # OGBench.

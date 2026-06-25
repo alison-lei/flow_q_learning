@@ -1,8 +1,8 @@
 import pickle
 import numpy as np
 import gymnasium as gym
-from lift_env_cfg import LiftEnvConfig
-from lift_env import PandaLiftGymEnv
+from envs.active-rl-for-assembly.lift_env_cfg import LiftEnvConfig
+from envs.active-rl-for-assembly.lift_env import PandaLiftGymEnv
 
 def lift_dataset(path: str) -> dict:
     with open(path, "rb") as f:
@@ -38,7 +38,7 @@ def lift_dataset(path: str) -> dict:
         "actions": np.asarray(actions, dtype=np.float32),
         "next_observations": np.asarray(next_observations, dtype=np.float32),
         "rewards": np.asarray(rewards, dtype=np.float32),
-        "masks": np.asarray(masks, dtype=np.float32), # masks = 1 terminals, stops bootstrapping (guessing the final reward based on what its guess of how much the next state is worth)
+        "masks": np.asarray(masks, dtype=np.float32), # masks = 1 - terminals, stops bootstrapping (guessing the final reward based on what its guess of how much the next state is worth)
         "terminals": np.asarray(terminals, dtype=np.float32),
     }
 
@@ -64,10 +64,10 @@ class FlattenObsWrapper(gym.ObservationWrapper):
         ]).astype(np.float32)
 
 
-def make_eval_env(env_name):
-    if env_name != "robomimic_lift":
+def make_eval_env(env_name, render_mode="rgb_array"):
+    if env_name != "robomimic-lift":
         return
-    env = PandaLiftGymEnv(config=LiftEnvConfig, render_mode="rgb_array", privileged_obs=True)
+    env = PandaLiftGymEnv(config=LiftEnvConfig, render_mode=render_mode, privileged_obs=True)
     
     return FlattenObsWrapper(env)
 

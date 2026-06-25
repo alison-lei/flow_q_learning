@@ -7,10 +7,10 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import time
-from sim_env.configs.default_robosuite_cfg import DefaultRobosuiteConfig
+from default_robosuite_cfg import DefaultRobosuiteConfig
 
 from scipy.spatial.transform import Rotation as R
-from utils.quat_scalar_transformations import scalar_first_to_scalar_last
+from quat_scalar_transformations import scalar_first_to_scalar_last
 
 import os
 from datetime import datetime

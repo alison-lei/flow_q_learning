@@ -1,6 +1,7 @@
 from collections import defaultdict
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 from tqdm import trange
 
@@ -58,27 +59,40 @@ def evaluate(
         A tuple containing the statistics, trajectories, and rendered videos.
     """
     actor_fn = supply_rng(agent.sample_actions, rng=jax.random.PRNGKey(np.random.randint(0, 2**32)))
+    # list containing dictionaries, each dictionary is an episode and contains lists of observations (ex) at each timestep
     trajs = []
     stats = defaultdict(list)
 
     renders = []
+    # iterate through each episode
     for i in trange(num_eval_episodes + num_video_episodes):
         traj = defaultdict(list)
         should_render = i >= num_eval_episodes
 
+        # first observation when environment resets
         observation, info = env.reset()
         done = False
         step = 0
         render = []
+        episode_q_values = []
+
         while not done:
+            # distillation actor given observation produces action
             action = actor_fn(observations=observation, temperature=eval_temperature)
             action = np.array(action)
             action = np.clip(action, -1, 1)
+            
+            qs = agent.network.select('critic')(observation[None], actions=action[None]) # current estimate of Q in this state, critic for one-step specifically
+            q = jnp.mean(qs, axis=0)
+            # episode_q_values store mean q value per observation-action value pair
+            episode_q_values.append(q)
 
+            # environment takes that step and reports the outcome like next observations and whether was success
             next_observation, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
             step += 1
 
+            # saves the frames to create videos
             if should_render and (step % video_frame_skip == 0 or done):
                 frame = env.render().copy()
                 render.append(frame)
@@ -96,6 +110,10 @@ def evaluate(
         if i < num_eval_episodes:
             add_to(stats, flatten(info))
             trajs.append(traj)
+            
+            stats["trajectory_length"].append(step)
+            stats["mean_q_value"].append(np.mean(episode_q_values)) # gets average q in each episode
+            stats["final_q_value"].append(episode_q_values[-1]) # gets final q in each episode
         else:
             renders.append(np.array(render))
 
