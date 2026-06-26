@@ -75,6 +75,9 @@ class FlattenObsWrapper(gym.Wrapper):
         obs, reward, terminated, truncated, info = self.env.step(action)
         return self._flatten_obs(obs), reward, terminated, truncated, info
 
+    def render(self):
+        return self.env.render()
+
 
 def make_eval_env(env_name, render_mode="rgb_array"):
     if env_name != "robomimic-lift":
