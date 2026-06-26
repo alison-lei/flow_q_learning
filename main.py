@@ -62,8 +62,10 @@ def main(_):
     
     # create popup window for live viewer
     # vis_env = robomimic_utils.make_eval_env(env_name="robomimic_lift", render_mode="human")
-    if FLAGS.video_episodes > 0:
-        assert 'singletask' in FLAGS.env_name, 'Rendering is currently only supported for OGBench environments.'
+    
+    # get rid of this assertion error to let lift task run
+    # if FLAGS.video_episodes > 0:
+    #     assert 'singletask' in FLAGS.env_name, 'Rendering is currently only supported for OGBench environments.'
     if FLAGS.online_steps > 0:
         assert 'visual' not in FLAGS.env_name, 'Online fine-tuning is currently not supported for visual environments.'
     

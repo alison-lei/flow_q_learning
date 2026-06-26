@@ -7,10 +7,10 @@ import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
 import time
-from default_robosuite_cfg import DefaultRobosuiteConfig
+from envs.active_rl_for_assembly.default_robosuite_cfg import DefaultRobosuiteConfig
 
 from scipy.spatial.transform import Rotation as R
-from quat_scalar_transformations import scalar_first_to_scalar_last
+from envs.active_rl_for_assembly.quat_scalar_transformations import scalar_first_to_scalar_last
 
 import os
 from datetime import datetime
@@ -36,7 +36,7 @@ macros.IMAGE_CONVENTION = "opencv" # to get images in opencv format (not flipped
 # import robosuite.utils.transform_utils as T
 # from robosuite.utils.ik_utils import IKSolver
 import mink
-from sim_env.utils.inverse_kinematics import converge_ik
+from envs.active_rl_for_assembly.converge_ik import converge_ik
 
 def print_green(x):
     return print("\033[92m {}\033[00m".format(x))

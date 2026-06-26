@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Literal, List
 
-from envs.lift_env_cfg import LiftEnvConfig
-from robosuite_base_env import RobosuiteBaseEnv
+from envs.active_rl_for_assembly.lift_env_cfg import LiftEnvConfig
+from envs.active_rl_for_assembly.robosuite_base_env import RobosuiteBaseEnv
 import numpy as np
 
 from scipy.spatial.transform import Rotation as R
@@ -162,16 +162,26 @@ class PandaLiftGymEnv(RobosuiteBaseEnv):
             np.cos(4 * relative_angle),
         ])
 
+        # --- 3. cube height above table (1D) ---
+        # Mirrors robosuite Lift._check_success: cube world-frame z minus the
+        # table top (table_offset[2]). success <=> cube_height_above_table > 0.04.
+        cube_height_above_table = np.array(
+            [cube_pos_world[2] - self.table_height], dtype=np.float32
+        )
+
         # print_green(f"DELTA POS EE: {delta_pos_ee}")
         # print_green(f"SYM YAW: {sym_yaw}")
+        # print_green(f"CUBE HEIGHT ABOVE TABLE: {cube_height_above_table}")
 
-        out["state"]["privileged"] = np.concatenate([delta_pos_ee, sym_yaw]).astype(np.float32)
+        out["state"]["privileged"] = np.concatenate(
+            [delta_pos_ee, sym_yaw, cube_height_above_table]
+        ).astype(np.float32)
         return out
 
 
     def get_privileged_shape(self):
-        # delta_pos_ee(3) + sym_yaw(2) = 5
-        return (5,)
+        # delta_pos_ee(3) + sym_yaw(2) + cube_height_above_table(1) = 6
+        return (6,)
 
     def _cube_pos_base(self, body_name: str) -> np.ndarray:
         body_id = self._env.sim.model.body_name2id(body_name)

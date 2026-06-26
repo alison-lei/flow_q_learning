@@ -103,7 +103,8 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
 
     if "robomimic-lift" in env_name:
         train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
-        train_dataset, val_dataset, env = Dataset.create(**train_dataset), None, None
+        val_dataset = None
+        env = None
         eval_env = robomimic_utils.make_eval_env("robomimic-lift")
 
     elif 'singletask' in env_name:
@@ -146,13 +147,32 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         eval_env.reset()
 
     # Clip dataset actions.
+    # if action_clip_eps is not None:
+    #     train_dataset = train_dataset.copy(
+    #         add_or_replace=dict(actions=np.clip(train_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
+    #     )
+    #     if val_dataset is not None:
+    #         val_dataset = val_dataset.copy(
+    #             add_or_replace=dict(actions=np.clip(val_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
+    #         )
+    # Clip dataset actions.
     if action_clip_eps is not None:
-        train_dataset = train_dataset.copy(
-            add_or_replace=dict(actions=np.clip(train_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
-        )
-        if val_dataset is not None:
-            val_dataset = val_dataset.copy(
-                add_or_replace=dict(actions=np.clip(val_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
+        if isinstance(train_dataset, dict):
+            train_dataset['actions'] = np.clip(
+                train_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps
             )
+        else:
+            train_dataset = train_dataset.copy(
+                add_or_replace=dict(actions=np.clip(train_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
+            )
+        if val_dataset is not None:
+            if isinstance(val_dataset, dict):
+                val_dataset['actions'] = np.clip(
+                    val_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps
+                )
+            else:
+                val_dataset = val_dataset.copy(
+                    add_or_replace=dict(actions=np.clip(val_dataset['actions'], -1 + action_clip_eps, 1 - action_clip_eps))
+                )
 
     return env, eval_env, train_dataset, val_dataset

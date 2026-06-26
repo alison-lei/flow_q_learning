@@ -1,5 +1,5 @@
 import numpy as np
-from envs.active-rl-for-assembly.default_env_cfg import DefaultEnvConfig
+from envs.active_rl_for_assembly.default_env_cfg import DefaultEnvConfig
 
 class DefaultRobosuiteConfig(DefaultEnvConfig):
     MAX_EPISODE_LENGTH: int = 150
