@@ -35,7 +35,7 @@ flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 20000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval', 20000, 'Saving interval.')
 
-flags.DEFINE_integer('eval_episodes', 1, 'Number of evaluation episodes.')
+flags.DEFINE_integer('eval_episodes', 100, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 5, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 1, 'Frame skip for videos.')
     

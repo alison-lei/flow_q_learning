@@ -262,8 +262,8 @@ class PandaLiftGymEnv(RobosuiteBaseEnv):
             done = True
             info["cube_out_of_bounds"] = "cube_main"
 
-        if self.render_mode == "human":
-            self._env.render()
+        # if self.render_mode == "human":
+        #     self._env.render()
 
         step_info = dict(info)
         step_info["succeed"] = int(success)
@@ -276,7 +276,18 @@ class PandaLiftGymEnv(RobosuiteBaseEnv):
         # print_green(f"CUBE SIZE: {self._env.cube.size}")
         return obs, info
     
-
+    # self._env is the actually underlying robosuite environment, MUJOCO simulation
+    def render(self):
+        if self.render_mode == "rgb_array":
+            cam = self.config.RENDER_CAMERA[0]
+            w, h = self.config.RENDER_CAMERA_SIZE
+            # MUJOCO's offscreen renderer
+            frame = self._env.sim.render(
+                width=w, height=h, camera_name=cam
+                )
+            return frame[::-1] # flip upright
+        elif self.render_mode == "human":
+            self._env.render()
 
     # def _compute_cube_ee_geometry(self):
     #     """Returns (delta_pos_ee, relative_angle) for the cube relative to the EE.

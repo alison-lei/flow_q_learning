@@ -76,7 +76,7 @@ class FlattenObsWrapper(gym.Wrapper):
         return self._flatten_obs(obs), reward, terminated, truncated, info
 
     def render(self):
-        return self.env.render()
+        return self.env.render() # self.env is PandaLiftGymEnv
 
 
 def make_eval_env(env_name, render_mode="rgb_array"):
