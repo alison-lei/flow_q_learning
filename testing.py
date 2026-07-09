@@ -79,9 +79,12 @@ next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (
 print(next_obs)
 print(data[1]["observations"]["state"])
 
-for i in range(1, 300):
+for i in range(150, 300):
+    gripper_pose = data[i]["observations"]["state"][0][0]
+    # print(gripper_pose)
     arr = data[i]["next_observations"]["state"][0][0]
     gripper_val = data[i]["infos"]["original_state_obs"]["gripper_pose"]
+    # print(gripper_val)
     # if (abs(gripper_val - arr)) > 0.1:
     #     print("/////////////////////////////////////")
     #     print(data[i])
@@ -94,21 +97,27 @@ for i in range(1, 300):
     # if arr != 1:
     #     print("hello: ", arr)
     
-    gaction = data[i]['actions'][6]
+    # gaction = data[i]['actions'][6]
     
-    if gaction != 0: 
-        print("action gripper:", gaction, i)
-        break
+    # if gaction != 0: 
+    #     print("action gripper:", gaction, i)
+    #     break
 
 obs = next_obs
 print(obs)
 dataset_action = data[17]["actions"]
+dataset_action[6] = -1
 # pick a dataset transition collected from a comparable reset, feed its stored action
 next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
 # next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
 # tcp_pose(7:13) should now match too, since the frame is reproduced
 print(next_obs)
-
+dataset_action[6] = 1
+for i in range(4):
+    next_obs, *_ = env.step(dataset_action)
+    print(next_obs)
+# action controlling gripper works and self.gripper_binary_state works as a latch to ensure that once or closed or
+# open it wont close or open further respectively, so when you set the action then it just stays that value
 print("////////////////////////////////////")
 
 obs, _ = env.reset()

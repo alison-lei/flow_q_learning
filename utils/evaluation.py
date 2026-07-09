@@ -108,6 +108,7 @@ def evaluate(
             add_to(traj, transition)
             observation = next_observation
         if i < num_eval_episodes:
+            print({k: type(v).__name__ for k, v in flatten(info).items()})
             add_to(stats, flatten(info))
             trajs.append(traj)
             
