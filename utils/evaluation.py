@@ -118,6 +118,13 @@ def evaluate(
             renders.append(np.array(render))
 
     for k, v in stats.items():
-        stats[k] = np.mean(v)
+        try:
+            stats[k] = np.mean(v)
+        except (TypeError, ValueError):
+            print("TypeError or ValueError")
+            print(f"non-numeric stat key={k} sample={v}")
+            stats[k] = np.mean([float(x) for x in np.asarray(v) != ''])
+            continue
+
 
     return stats, trajs, renders

@@ -12,7 +12,7 @@ class DefaultRobosuiteConfig(DefaultEnvConfig):
     GRIPPER_IS_ACTIVE: bool = True
     INITIAL_GRIPPER_OPEN: bool = True
     CONTROLLER: str = "BASIC"
-    CONTROL_FREQ: int = 10
+    CONTROL_FREQ: int = 10 # policy just executes for 0.1s
     RENDER_CAMERA: list[str] = ["robot0_robotview", "robot0_eye_in_hand"]
     RENDER_CAMERA_SIZE: tuple[int, int] = (640, 480)
     RENDERER: str = "mujoco"

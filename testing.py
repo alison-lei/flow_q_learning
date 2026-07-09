@@ -1,3 +1,4 @@
+# import robosuite
 # import numpy as np
 # import pickle
 # from utils.datasets import Dataset
@@ -33,6 +34,7 @@
 
 import numpy as np
 import pickle
+from envs import robomimic_utils
 
 file_path = "robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl"
 with open(file_path, "rb") as f:
@@ -51,7 +53,7 @@ print("wrist_force:", orig['wrist_force'])
 print("wrist_torque:", orig['wrist_torque'])
 
 print(type(orig['gripper_pose']))
-print(np.array(orig['gripper_pose']).shape)
+print("!!!!!", np.array(orig['gripper_pose']).shape)
 
 print(data[1]["observations"]["state"][0])
 
@@ -60,25 +62,57 @@ print("dataset privileged shape:", t['infos']['original_state_obs']['privileged'
 
 print("next data element", data[1])
 
-# print("gripper shape:", gripper.shape, gripper)
-# print("privileged shape:", privileged.shape)
-# print("tcp_vel shape:", tcp_vel.shape)
-# print("privileged values", privileged)
-# file_path = "robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl"
-# with open(file_path, "rb") as f:
-#     data = pickle.load(f)
-# print(data[0])
-# t = data[0]
-# obs = t['observations']['state'][0]
-# orig = t['infos']['original_state_obs']
-# print("full obs:", obs)
-# print("gripper:", orig['gripper_pose'])
-# print("privileged:", orig['privileged'])
-# print("tcp_vel:", orig['tcp_vel'])
-# print("wrist_force:", orig['wrist_force'])
-# print("wrist_torque:", orig['wrist_torque'])
-# print(type(orig['gripper_pose']))
-# print(np.array(orig['gripper_pose']).shape)
-# print(data[1]["observations"]["state"][0])
-# print("dataset privileged:", t['infos']['original_state_obs']['privileged'])
-# print("dataset privileged shape:", t['infos']['original_state_obs']['privileged'].shape)
+print("gripper pose", data[1]["infos"]["original_state_obs"]["gripper_pose"])
+
+
+print("////////////////////////")
+
+
+env = robomimic_utils.make_eval_env("robomimic-lift")
+obs, _ = env.reset()
+print(obs)
+dataset_action = t["actions"]
+# pick a dataset transition collected from a comparable reset, feed its stored action
+next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
+# next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
+# tcp_pose(7:13) should now match too, since the frame is reproduced
+print(next_obs)
+print(data[1]["observations"]["state"])
+
+for i in range(1, 300):
+    arr = data[i]["next_observations"]["state"][0][0]
+    gripper_val = data[i]["infos"]["original_state_obs"]["gripper_pose"]
+    # if (abs(gripper_val - arr)) > 0.1:
+    #     print("/////////////////////////////////////")
+    #     print(data[i])
+        # print("//////////////////////////////////")
+        # print(data[i-1])
+        # print("not the same as pose")
+        # print("arr: ", arr)
+        # print("gripper_val: ", gripper_val)
+        # gripper_pose is equal to index 0 of next_observations
+    # if arr != 1:
+    #     print("hello: ", arr)
+    
+    gaction = data[i]['actions'][6]
+    
+    if gaction != 0: 
+        print("action gripper:", gaction, i)
+        break
+
+obs = next_obs
+print(obs)
+dataset_action = data[17]["actions"]
+# pick a dataset transition collected from a comparable reset, feed its stored action
+next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
+# next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
+# tcp_pose(7:13) should now match too, since the frame is reproduced
+print(next_obs)
+
+print("////////////////////////////////////")
+
+obs, _ = env.reset()
+a = np.zeros(7, dtype=np.float32); a[0] = 1.0
+for _ in range(5):
+    obs, *_ = env.step(a)
+    print(np.round(obs[7:10], 4))

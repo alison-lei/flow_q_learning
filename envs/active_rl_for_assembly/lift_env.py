@@ -216,6 +216,7 @@ class PandaLiftGymEnv(RobosuiteBaseEnv):
     def step(self, action: np.ndarray):
         start_time = time.time()
         action = np.asarray(action, dtype=np.float32) #delta action (euler angles in base frame)
+        action = np.nan_to_num(action, nan=0.0, posinf=0.0, neginf=0.0)
         action = np.clip(action, self.action_space.low, self.action_space.high)
 
         # control gripper
@@ -258,9 +259,10 @@ class PandaLiftGymEnv(RobosuiteBaseEnv):
 
         grip = float(np.ravel(obs["state"]["gripper_pose"])[0])
         grasping = (grip < self._GRIPPER_CLOSED_THRESH) and (grip >= self._EMPTY_GRASP_THRESH)
+        info["cube_out_of_bounds"] = 0
         if self._cube_out_of_bounds("cube_main", grasping):
             done = True
-            info["cube_out_of_bounds"] = "cube_main"
+            info["cube_out_of_bounds"] = 1
 
         # if self.render_mode == "human":
         #     self._env.render()

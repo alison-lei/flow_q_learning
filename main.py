@@ -28,14 +28,14 @@ flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
 flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
 
-flags.DEFINE_integer('offline_steps', 200000, 'Number of offline steps.')
+flags.DEFINE_integer('offline_steps', 100000, 'Number of offline steps.')
 flags.DEFINE_integer('online_steps', 0, 'Number of online steps.')
 flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
-flags.DEFINE_integer('log_interval', 5000, 'Logging interval.')
-flags.DEFINE_integer('eval_interval', 20000, 'Evaluation interval.')
+flags.DEFINE_integer('log_interval', 500, 'Logging interval.')
+flags.DEFINE_integer('eval_interval', 10000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval', 20000, 'Saving interval.')
 
-flags.DEFINE_integer('eval_episodes', 100, 'Number of evaluation episodes.')
+flags.DEFINE_integer('eval_episodes', 50, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 5, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 1, 'Frame skip for videos.')
     

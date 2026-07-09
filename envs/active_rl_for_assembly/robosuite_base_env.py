@@ -702,6 +702,7 @@ class RobosuiteBaseEnv(gym.Env):
             time.sleep(max(0.0, self._env.control_timestep - dt))
 
         obs = self._process_obs(raw_obs)
+
         success = self._check_success(info)
         reward = self.config.reward_pos if success else self.config.reward_neg
         done = bool(done or self.curr_path_length >= self.config.MAX_EPISODE_LENGTH or success)
@@ -710,6 +711,19 @@ class RobosuiteBaseEnv(gym.Env):
             self._env.render()
 
         step_info = dict(info)
+
+        qacc = self._env.sim.data.qacc
+        if not np.all(np.isfinite(qacc)) or not np.all(np.isfinite(
+            np.concatenate([np.ravel(obs["state"]["tcp_pose"]),
+                            np.ravel(obs["state"]["privileged"])])
+        )):
+            # sim went unstable — terminate this episode, don't poison the dataset
+            done = True
+            reward = self.config.reward_neg
+            step_info["sim_unstable"] = 1
+            step_info["succeed"] = 0
+            return obs, float(reward), done, False, step_info
+
         step_info["succeed"] = int(success)
         # print_green(f"GRIPPER POSE MORE: {obs['state']['gripper_pose']}")
         # print_green(f"TEST BASE ENV OBS: {obs}")
