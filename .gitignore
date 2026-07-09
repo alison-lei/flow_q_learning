@@ -8,4 +8,6 @@ dist/
 .ruff_cache/
 .venv
 exp
+help.py
+MUJOCO_LOG.TXT
 README.md
