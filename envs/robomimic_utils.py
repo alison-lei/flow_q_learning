@@ -5,7 +5,7 @@ from envs.active_rl_for_assembly.lift_env_cfg import LiftEnvConfig
 from envs.active_rl_for_assembly.lift_env import PandaLiftGymEnv
 from scipy.spatial.transform import Rotation as R
 # from envs.active_rl_for_assembly.wrappers import Quat2EulerWrapper
-from envs.active_rl_for_assembly import modified_wrappers
+from envs.active_rl_for_assembly import scalar_first_modified_wrappers
 def lift_dataset(path: str) -> dict:
     with open(path, "rb") as f:
         data = pickle.load(f)
@@ -100,7 +100,7 @@ class StateArrayWrapper(gym.Wrapper):
         return self.env.render()    
 
 
-class RelativeFrameEval(modified_wrappers.RelativeFrameRG):
+class RelativeFrameEval(scalar_first_modified_wrappers.RelativeFrame):
     """Eval-only relative-frame wrapper for FQL rollouts.
 
     Reuses RelativeFrameRG.transform_observation / transform_action and its
@@ -121,7 +121,7 @@ class RelativeFrameEval(modified_wrappers.RelativeFrameRG):
 
         # refresh adjoint from the NEW base-frame tcp_pose, then map obs into
         # the reset-relative frame -- identical order to RelativeFrameRG.step
-        self.adjoint_matrix = modified_wrappers.construct_adjoint_matrix(obs["state"]["tcp_pose"])
+        self.adjoint_matrix = scalar_first_modified_wrappers.construct_adjoint_matrix(obs["state"]["tcp_pose"])
         transformed_obs = self.transform_observation(obs)
         return transformed_obs, reward, done, truncated, info
 
@@ -142,8 +142,8 @@ def make_eval_env(env_name, render_mode="rgb_array"):
         return
     env = PandaLiftGymEnv(config=LiftEnvConfig, render_mode=render_mode, privileged_obs=True)
     env = RelativeFrameEval(env, include_relative_pose=True)  # obs base->relative, action EE->base
-    env = modified_wrappers.Quat2EulerWrapper(env)                              # tcp_pose quat->euler (6D)
-    env = modified_wrappers.SERLObsWrapper(env, proprio_keys=PROPRIO_KEYS)      # sorted flatten -> {"state": (13,)}
+    env = scalar_first_modified_wrappers.Quat2EulerWrapper(env)                              # tcp_pose quat->euler (6D)
+    env = scalar_first_modified_wrappers.SERLObsWrapper(env, proprio_keys=PROPRIO_KEYS)      # sorted flatten -> {"state": (13,)}
     env = StateArrayWrapper(env)                              # -> (13,) array for FQL
     return env
 

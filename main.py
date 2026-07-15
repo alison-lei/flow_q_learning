@@ -59,7 +59,7 @@ def main(_):
     # Make environment and datasets.
     config = FLAGS.agent
     env, eval_env, train_dataset, val_dataset = make_env_and_datasets(FLAGS.env_name, frame_stack=FLAGS.frame_stack)
-    
+
     # create popup window for live viewer
     # vis_env = robomimic_utils.make_eval_env(env_name="robomimic_lift", render_mode="human")
     
@@ -108,6 +108,66 @@ def main(_):
     if FLAGS.restore_path is not None:
         agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
     
+    # --- eval-only: run evaluation + video, log to wandb, then exit ---
+    if FLAGS.restore_path is not None:
+        eval_info, trajs, cur_renders = evaluate(
+            agent=agent,
+            env=eval_env,
+            config=config,
+            num_eval_episodes=FLAGS.eval_episodes,
+            num_video_episodes=FLAGS.video_episodes,
+            video_frame_skip=FLAGS.video_frame_skip,
+        )
+        eval_metrics = {f'evaluation/{k}': v for k, v in eval_info.items()}
+        if FLAGS.video_episodes > 0:
+            eval_metrics['video'] = get_wandb_video(renders=cur_renders)
+        wandb.log(eval_metrics, step=FLAGS.restore_epoch)
+        print({k: v for k, v in eval_metrics.items() if k != 'video'})
+        return
+    # --- end eval-only ---
+
+    # # Restore agent.
+    # if FLAGS.restore_path is not None:
+    #     agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
+
+    # # --- Q probe: check if critic values cube height, then exit ---
+    # if FLAGS.restore_path is not None:
+    #     import jax.numpy as jnp
+    #     raw = eval_env.unwrapped._env
+    #     cube_joint = raw.cube.joints[0]
+    #     obs, _ = eval_env.reset()
+    #     base_qpos = raw.sim.data.get_joint_qpos(cube_joint).copy()
+    #     table_z = base_qpos[2]
+    #     key = jax.random.PRNGKey(0)
+
+    #     # sanity: trained critic on real data should be near your q_mean (~-10)
+    #     b = train_dataset.sample(256)
+    #     print("mean Q on training batch:",
+    #           float(jnp.mean(agent.network.select('critic')(b['observations'], actions=b['actions']))))
+
+    #     serl = eval_env
+    #     while serl is not None and type(serl).__name__ != 'SERLObsWrapper':
+    #         serl = getattr(serl, 'env', None)
+
+    #     for h in (0.0, 0.02, 0.04, 0.08, 0.12):
+    #         qpos = base_qpos.copy()
+    #         qpos[2] = table_z + h
+    #         raw.sim.data.set_joint_qpos(cube_joint, qpos)
+    #         raw.sim.forward()
+    #         processed = eval_env.unwrapped._process_obs(raw._get_observations())
+    #         state = np.asarray(serl.observation(processed)['state'], dtype=np.float32)
+    #         action = np.clip(np.array(agent.sample_actions(observations=state, seed=key, temperature=0)), -1, 1)
+    #         q = float(jnp.mean(agent.network.select('critic')(state[None], actions=action[None])))
+    #         print(f"height {h:.3f} m | Q = {q:8.4f} | success = {raw._check_success()}")
+    #     return
+    # # --- end probe ---
+
+    # print("training obs dim:", train_dataset.sample(1)['observations'].shape[-1])   # expect 20
+    # obs, _ = eval_env.reset(); print("eval obs dim:", np.asarray(obs).shape)        # currently 13
+    # from train.mappings import CONFIG_MAPPING
+    # print("collection proprio_keys:", CONFIG_MAPPING['lift']().proprio_keys)
+    # return
+
     # Train agent.
     train_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'train.csv'))
     eval_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'eval.csv'))

@@ -18,8 +18,8 @@ class DefaultRobosuiteConfig(DefaultEnvConfig):
     RENDERER: str = "mujoco"
 
     REWARD_SHAPING: bool = False
-    reward_pos: float = 10.0
-    reward_neg: float = -0.05
+    reward_pos: float = 0.0
+    reward_neg: float = -1.0
 
     REALSENSE_CAMERAS = ["wrist_1", "side_policy_256"]
     CAMERA_NAME_MAP = {

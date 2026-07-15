@@ -125,3 +125,9 @@ a = np.zeros(7, dtype=np.float32); a[0] = 1.0
 for _ in range(5):
     obs, *_ = env.step(a)
     print(np.round(obs[7:10], 4))
+
+for i in range(300):
+    if data[i]["infos"]["succeed"] == 1:
+        print(data[i]["infos"]["succeed"]) 
+        print(data[i])
+        break
