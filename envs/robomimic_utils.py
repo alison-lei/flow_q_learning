@@ -103,7 +103,7 @@ class StateArrayWrapper(gym.Wrapper):
 class RelativeFrameEval(scalar_first_modified_wrappers.RelativeFrame):
     """Eval-only relative-frame wrapper for FQL rollouts.
 
-    Reuses RelativeFrameRG.transform_observation / transform_action and its
+    Reuses RelativeFrame.transform_observation / transform_action and its
     reset-pose (T_r_o_inv) + adjoint bookkeeping VERBATIM, so eval obs and
     actions live in the exact frame the dataset was collected in. Only the
     interface changes: FQL emits a plain (7,) array, and there is no

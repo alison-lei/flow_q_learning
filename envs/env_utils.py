@@ -4,7 +4,7 @@ import time
 
 import gymnasium
 import numpy as np
-import ogbench
+# import ogbench
 from gymnasium.spaces import Box
 
 from utils.datasets import Dataset
