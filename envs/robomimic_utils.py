@@ -59,7 +59,7 @@ def make_env(env_name, seed=0):
     env = EnvUtils.create_env_from_metadata(
         env_meta=env_meta,
         render=False, 
-        render_offscreen=False,
+        render_offscreen=True,
     )
     env = RobomimicLowdimWrapper(env, low_dim_keys=low_dim_keys["low_dim"], max_episode_length=max_episode_length)
     env.seed(seed)
