@@ -108,33 +108,36 @@ def main(_):
         config,
     )
 
+    # dont comment this out or then it starts a completely fresh agent with random weights
     if FLAGS.restore_path is not None:
         agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
     
-    # pull the full dataset arrays (ReplayBuffer/Dataset stores them as fields)
-    obs_all  = np.asarray(train_dataset['observations'])
-    act_all  = np.asarray(train_dataset['actions'])
-    term_all = np.asarray(train_dataset['terminals'])
-    # find episode boundaries: a trajectory ends where terminals == 1
-    end_idxs = np.where(term_all > 0.5)[0]
-    starts = np.concatenate([[0], end_idxs[:-1] + 1])
-    bounds = list(zip(starts, end_idxs + 1))[:5]   # first 5 trajectories
-    plt.figure(figsize=(9, 5))
-    for ei, (s, e) in enumerate(bounds):
-        obs = obs_all[s:e]
-        act = act_all[s:e]
-        # Q(s,a) for the dataset's own state-action pairs, meaned over the ensemble
-        qs = agent.network.select('critic')(obs, actions=act)   # (ensemble, T)
-        q = np.asarray(jnp.mean(qs, axis=0))                    # (T,)
-        plt.plot(q, marker='.', label=f"traj {ei} (len {e-s})")
-        print(f"traj {ei}: len={e-s}  Q first={q[0]:.2f}  last={q[-1]:.2f}")
-    plt.xlabel("step"); plt.ylabel("Q(s, a)")
-    plt.title(f"Per-step Q on first 5 training trajectories (epoch {FLAGS.restore_epoch})")
-    plt.legend()
-    plt.savefig("q_train_traj.png", dpi=120)
-    print("saved q_train_traj.png")
-    wandb.log({"q_train_traj": wandb.Image("q_train_traj.png")}, step=FLAGS.restore_epoch)
-    return
+
+    # this bottom part is for just visualizing the training data as videos
+    # # pull the full dataset arrays (ReplayBuffer/Dataset stores them as fields)
+    # obs_all  = np.asarray(train_dataset['observations'])
+    # act_all  = np.asarray(train_dataset['actions'])
+    # term_all = np.asarray(train_dataset['terminals'])
+    # # find episode boundaries: a trajectory ends where terminals == 1
+    # end_idxs = np.where(term_all > 0.5)[0]
+    # starts = np.concatenate([[0], end_idxs[:-1] + 1])
+    # bounds = list(zip(starts, end_idxs + 1))[:5]   # first 5 trajectories
+    # plt.figure(figsize=(9, 5))
+    # for ei, (s, e) in enumerate(bounds):
+    #     obs = obs_all[s:e]
+    #     act = act_all[s:e]
+    #     # Q(s,a) for the dataset's own state-action pairs, meaned over the ensemble
+    #     qs = agent.network.select('critic')(obs, actions=act)   # (ensemble, T)
+    #     q = np.asarray(jnp.mean(qs, axis=0))                    # (T,)
+    #     plt.plot(q, marker='.', label=f"traj {ei} (len {e-s})")
+    #     print(f"traj {ei}: len={e-s}  Q first={q[0]:.2f}  last={q[-1]:.2f}")
+    # plt.xlabel("step"); plt.ylabel("Q(s, a)")
+    # plt.title(f"Per-step Q on first 5 training trajectories (epoch {FLAGS.restore_epoch})")
+    # plt.legend()
+    # plt.savefig("q_train_traj_300.png", dpi=120)
+    # print("saved q_train_traj_300.png")
+    # wandb.log({"q_train_traj": wandb.Image("q_train_traj_300.png")}, step=FLAGS.restore_epoch)
+    # return
 
     # record graphs of q values per episode
     if FLAGS.restore_path is not None:
@@ -173,11 +176,11 @@ def main(_):
         plt.legend(dict(zip(l, h)).values(), dict(zip(l, h)).keys())
         plt.xlabel("step"); plt.ylabel("Q(s, a)")
         plt.title(f"Per-step Q values (epoch {FLAGS.restore_epoch})")
-        plt.savefig("q_traces.png", dpi=120)
-        print("saved q_traces.png")
+        plt.savefig("q_traces_300.png", dpi=120)
+        print("saved q_traces_300.png")
 
         # optional: log to wandb too
-        wandb.log({"q_traces": wandb.Image("q_traces.png")}, step=FLAGS.restore_epoch)
+        wandb.log({"q_traces": wandb.Image("q_traces_300.png")}, step=FLAGS.restore_epoch)
         return
 
 

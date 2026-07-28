@@ -3,7 +3,7 @@ from envs.active_rl_for_assembly.default_robosuite_cfg import DefaultRobosuiteCo
 
 class LiftEnvConfig(DefaultRobosuiteConfig):
     ENV_NAME: str = "FixedCubeLift" #"Lift"
-    MAX_EPISODE_LENGTH: int = 70
+    MAX_EPISODE_LENGTH: int = 300
     RANDOM_RESET: bool = True
     INITIAL_GRIPPER_OPEN: bool = True #False#True
 
