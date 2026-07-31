@@ -176,11 +176,11 @@ def main(_):
         plt.legend(dict(zip(l, h)).values(), dict(zip(l, h)).keys())
         plt.xlabel("step"); plt.ylabel("Q(s, a)")
         plt.title(f"Per-step Q values (epoch {FLAGS.restore_epoch})")
-        plt.savefig("q_traces_300.png", dpi=120)
-        print("saved q_traces_300.png")
+        plt.savefig("q_traces_70.png", dpi=120)
+        print("saved q_traces_70.png")
 
         # optional: log to wandb too
-        wandb.log({"q_traces": wandb.Image("q_traces_300.png")}, step=FLAGS.restore_epoch)
+        wandb.log({"q_traces": wandb.Image("q_traces_70.png")}, step=FLAGS.restore_epoch)
         return
 
 
@@ -208,111 +208,111 @@ def main(_):
         return
     # --- end eval-only ---
 
-    # Train agent.
-    train_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'train.csv'))
-    eval_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'eval.csv'))
-    first_time = time.time()
-    last_time = time.time()
-    step = 0
-    done = True
-    expl_metrics = dict()
-    online_rng = jax.random.PRNGKey(FLAGS.seed)
+    # # Train agent.
+    # train_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'train.csv'))
+    # eval_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'eval.csv'))
+    # first_time = time.time()
+    # last_time = time.time()
+    # step = 0
+    # done = True
+    # expl_metrics = dict()
+    # online_rng = jax.random.PRNGKey(FLAGS.seed)
     
-    # each step processes a batch size of information randomly sampled with replacement from train dataset
-    for i in tqdm.tqdm(range(1, FLAGS.offline_steps + FLAGS.online_steps + 1), smoothing=0.1, dynamic_ncols=True):
-        if i <= FLAGS.offline_steps:
-            # Offline RL.
-            batch = train_dataset.sample(config['batch_size'])
-            if config['agent_name'] == 'rebrac':
-                agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
-            else:
-                agent, update_info = agent.update(batch)
-        else:
-            # Online fine-tuning.
-            online_rng, key = jax.random.split(online_rng)
-            if done and env is not None:
-                step = 0
-                ob, _ = env.reset()
-            action = agent.sample_actions(observations=ob, temperature=1, seed=key)
-            action = np.array(action)
-            next_ob, reward, terminated, truncated, info = env.step(action.copy())
-            done = terminated or truncated
-            if 'antmaze' in FLAGS.env_name and (
-                'diverse' in FLAGS.env_name or 'play' in FLAGS.env_name or 'umaze' in FLAGS.env_name
-            ):
-                # Adjust reward for D4RL antmaze.
-                reward = reward - 1.0
-            replay_buffer.add_transition(
-                dict(
-                    observations=ob,
-                    actions=action,
-                    rewards=reward,
-                    terminals=float(done),
-                    masks=1.0 - terminated,
-                    next_observations=next_ob,
-                )
-            )
-            ob = next_ob
-            if done:
-                expl_metrics = {f'exploration/{k}': np.mean(v) for k, v in flatten(info).items()}
-            step += 1
+    # # each step processes a batch size of information randomly sampled with replacement from train dataset
+    # for i in tqdm.tqdm(range(1, FLAGS.offline_steps + FLAGS.online_steps + 1), smoothing=0.1, dynamic_ncols=True):
+    #     if i <= FLAGS.offline_steps:
+    #         # Offline RL.
+    #         batch = train_dataset.sample(config['batch_size'])
+    #         if config['agent_name'] == 'rebrac':
+    #             agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
+    #         else:
+    #             agent, update_info = agent.update(batch)
+    #     else:
+    #         # Online fine-tuning.
+    #         online_rng, key = jax.random.split(online_rng)
+    #         if done and env is not None:
+    #             step = 0
+    #             ob, _ = env.reset()
+    #         action = agent.sample_actions(observations=ob, temperature=1, seed=key)
+    #         action = np.array(action)
+    #         next_ob, reward, terminated, truncated, info = env.step(action.copy())
+    #         done = terminated or truncated
+    #         if 'antmaze' in FLAGS.env_name and (
+    #             'diverse' in FLAGS.env_name or 'play' in FLAGS.env_name or 'umaze' in FLAGS.env_name
+    #         ):
+    #             # Adjust reward for D4RL antmaze.
+    #             reward = reward - 1.0
+    #         replay_buffer.add_transition(
+    #             dict(
+    #                 observations=ob,
+    #                 actions=action,
+    #                 rewards=reward,
+    #                 terminals=float(done),
+    #                 masks=1.0 - terminated,
+    #                 next_observations=next_ob,
+    #             )
+    #         )
+    #         ob = next_ob
+    #         if done:
+    #             expl_metrics = {f'exploration/{k}': np.mean(v) for k, v in flatten(info).items()}
+    #         step += 1
 
-            # Update agent.
-            if FLAGS.balanced_sampling:
-                # Half-and-half sampling from the training dataset and the replay buffer.
-                dataset_batch = train_dataset.sample(config['batch_size'] // 2)
-                replay_batch = replay_buffer.sample(config['batch_size'] // 2)
-                batch = {k: np.concatenate([dataset_batch[k], replay_batch[k]], axis=0) for k in dataset_batch}
-            else:
-                batch = replay_buffer.sample(config['batch_size'])
-            if config['agent_name'] == 'rebrac':
-                agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
-            else:
-                agent, update_info = agent.update(batch)
+    #         # Update agent.
+    #         if FLAGS.balanced_sampling:
+    #             # Half-and-half sampling from the training dataset and the replay buffer.
+    #             dataset_batch = train_dataset.sample(config['batch_size'] // 2)
+    #             replay_batch = replay_buffer.sample(config['batch_size'] // 2)
+    #             batch = {k: np.concatenate([dataset_batch[k], replay_batch[k]], axis=0) for k in dataset_batch}
+    #         else:
+    #             batch = replay_buffer.sample(config['batch_size'])
+    #         if config['agent_name'] == 'rebrac':
+    #             agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
+    #         else:
+    #             agent, update_info = agent.update(batch)
 
-        # Log metrics.
-        if i % FLAGS.log_interval == 0:
-            train_metrics = {f'training/{k}': v for k, v in update_info.items()}
-            if val_dataset is not None:
-                val_batch = val_dataset.sample(config['batch_size'])
-                _, val_info = agent.total_loss(val_batch, grad_params=None)
-                train_metrics.update({f'validation/{k}': v for k, v in val_info.items()})
-            train_metrics['time/epoch_time'] = (time.time() - last_time) / FLAGS.log_interval # average time for each step (256 batch size)
-            train_metrics['time/total_time'] = time.time() - first_time
-            train_metrics.update(expl_metrics)
-            last_time = time.time()
-            wandb.log(train_metrics, step=i)
-            train_logger.log(train_metrics, step=i)
+    #     # Log metrics.
+    #     if i % FLAGS.log_interval == 0:
+    #         train_metrics = {f'training/{k}': v for k, v in update_info.items()}
+    #         if val_dataset is not None:
+    #             val_batch = val_dataset.sample(config['batch_size'])
+    #             _, val_info = agent.total_loss(val_batch, grad_params=None)
+    #             train_metrics.update({f'validation/{k}': v for k, v in val_info.items()})
+    #         train_metrics['time/epoch_time'] = (time.time() - last_time) / FLAGS.log_interval # average time for each step (256 batch size)
+    #         train_metrics['time/total_time'] = time.time() - first_time
+    #         train_metrics.update(expl_metrics)
+    #         last_time = time.time()
+    #         wandb.log(train_metrics, step=i)
+    #         train_logger.log(train_metrics, step=i)
 
-        # Evaluate agent.
-        if FLAGS.eval_interval != 0 and (i == 1 or i % FLAGS.eval_interval == 0):
-            renders = []
-            eval_metrics = {}
-            eval_info, trajs, cur_renders = evaluate(
-                agent=agent,
-                env=eval_env,
-                config=config,
-                num_eval_episodes=FLAGS.eval_episodes,
-                num_video_episodes=FLAGS.video_episodes,
-                video_frame_skip=FLAGS.video_frame_skip,
-            )
-            renders.extend(cur_renders)
-            for k, v in eval_info.items():
-                eval_metrics[f'evaluation/{k}'] = v
+    #     # Evaluate agent.
+    #     if FLAGS.eval_interval != 0 and (i == 1 or i % FLAGS.eval_interval == 0):
+    #         renders = []
+    #         eval_metrics = {}
+    #         eval_info, trajs, cur_renders = evaluate(
+    #             agent=agent,
+    #             env=eval_env,
+    #             config=config,
+    #             num_eval_episodes=FLAGS.eval_episodes,
+    #             num_video_episodes=FLAGS.video_episodes,
+    #             video_frame_skip=FLAGS.video_frame_skip,
+    #         )
+    #         renders.extend(cur_renders)
+    #         for k, v in eval_info.items():
+    #             eval_metrics[f'evaluation/{k}'] = v
 
-            if FLAGS.video_episodes > 0:
-                video = get_wandb_video(renders=renders)
-                eval_metrics['video'] = video
-            # log in both wandb and locally in CSV file
-            wandb.log(eval_metrics, step=i)
-            eval_logger.log(eval_metrics, step=i)
+    #         if FLAGS.video_episodes > 0:
+    #             video = get_wandb_video(renders=renders)
+    #             eval_metrics['video'] = video
+    #         # log in both wandb and locally in CSV file
+    #         wandb.log(eval_metrics, step=i)
+    #         eval_logger.log(eval_metrics, step=i)
 
-        # Save agent.
-        if i % FLAGS.save_interval == 0:
-            save_agent(agent, FLAGS.save_dir, i)
+    #     # Save agent.
+    #     if i % FLAGS.save_interval == 0:
+    #         save_agent(agent, FLAGS.save_dir, i)
 
-    train_logger.close()
-    eval_logger.close()
+    # train_logger.close()
+    # eval_logger.close()
 
 
 if __name__ == '__main__':
