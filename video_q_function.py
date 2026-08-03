@@ -32,7 +32,7 @@ flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
 flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
 flags.DEFINE_integer('frame_stack', None, 'Number of frames to stack.')
-flags.DEFINE_integer('num_video_episodes', 5, 'How many episodes to render.')
+flags.DEFINE_integer('num_video_episodes', 100, 'How many episodes to render.')
 
 config_flags.DEFINE_config_file('agent', 'agents/fql.py', lock_config=False)
 
@@ -119,6 +119,8 @@ def main(_):
     mean_q = float(jnp.mean(agent.network.select('critic')(b['observations'], actions=b['actions'])))
     print(f"mean Q after restore: {mean_q:.3f}  (expect ~-10; near 0 => restore failed)")
 
+
+    # this is just normal record 5 episodes
     key = jax.random.PRNGKey(0)
     for ep in range(FLAGS.num_video_episodes):
         print(f"episode {ep}:")
@@ -132,6 +134,28 @@ def main(_):
             step=FLAGS.restore_epoch,
         )
         print(f"  logged episode {ep} to wandb")
+
+
+    # if i want to record failure episodes
+    # failure_count = 0
+    # ep = 0
+
+    # key = jax.random.PRNGKey(0)
+    # while failure_count < 2:
+    #     print(f"episode {ep}:")
+    #     key, ek = jax.random.split(key)
+    #     video_np, success = render_episode(agent, eval_env, ek)
+    #     if success != 1:
+    #         failure_count += 1
+    #         wandb.log(
+    #             {
+    #                 f"q_synced_video_ep{ep}": wandb.Video(video_np, fps=10, format="mp4"),
+    #                 f"episode_success_ep{ep}": success,
+    #             },
+    #             step=FLAGS.restore_epoch,
+    #         )
+    #         print(f"  logged episode {ep} to wandb")
+    #     ep += 1
 
 
 if __name__ == '__main__':

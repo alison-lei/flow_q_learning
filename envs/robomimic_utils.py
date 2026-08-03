@@ -46,39 +46,6 @@ def lift_dataset(path: str) -> dict:
 
     return dataset
 
-# purpose of this class is only to flatten dict output
-# Use gym.Wrapper instead of gym.ObservationWrapper
-# to avoid recursion bug in gymnasium 0.29.1
-# class FlattenObsWrapper(gym.Wrapper):
-#     def __init__(self, env):
-#         super().__init__(env)  # calls initialization method of parent class
-#         self.observation_space = gym.spaces.Box(
-#             -np.inf, np.inf, shape=(13,), dtype=np.float32
-#         )
-
-#     def _flatten_obs(self, obs):
-#         gripper = np.array([obs["state"]["gripper_pose"]])
-#         print("gripper value: ", gripper)
-#         privileged = obs["state"]["privileged"]
-
-#         tcp_pose_raw = obs["state"]["tcp_pose"]
-#         pos = tcp_pose_raw[:3]
-#         euler = R.from_quat(tcp_pose_raw[3:]).as_euler('xyz')
-#         tcp_pose = np.concatenate([pos, euler])
-
-#         return np.concatenate([gripper, privileged, tcp_pose]).astype(np.float32)
-
-#     # Calls the env's reset and step which is the PandaLiftGymEnv
-#     def reset(self, **kwargs):
-#         obs, info = self.env.reset(**kwargs)
-#         return self._flatten_obs(obs), info
-
-#     def step(self, action):
-#         obs, reward, terminated, truncated, info = self.env.step(action)
-#         return self._flatten_obs(obs), reward, terminated, truncated, info
-
-#     def render(self):
-#         return self.env.render() # self.env is PandaLiftGymEnv
 
 PROPRIO_KEYS = ["gripper_pose", "privileged", "tcp_pose"]
 
@@ -124,18 +91,7 @@ class RelativeFrameEval(scalar_first_modified_wrappers.RelativeFrame):
         self.adjoint_matrix = scalar_first_modified_wrappers.construct_adjoint_matrix(obs["state"]["tcp_pose"])
         transformed_obs = self.transform_observation(obs)
         return transformed_obs, reward, done, truncated, info
-
-
-# def make_eval_env(env_name, render_mode="rgb_array"):
-#     if env_name != "robomimic-lift":
-#         return
-#     env = PandaLiftGymEnv(
-#         config=LiftEnvConfig,
-#         render_mode=render_mode,
-#         privileged_obs=True,
-#     )
-#     return FlattenObsWrapper(env)
-
+        
 
 def make_eval_env(env_name, render_mode="rgb_array"):
     if env_name != "robomimic-lift":

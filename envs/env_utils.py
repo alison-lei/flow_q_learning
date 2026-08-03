@@ -102,7 +102,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
     """
 
     if "robomimic-lift" in env_name:
-        train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl")
+        train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/lift_20_demos_scripted_flow.pkl")
         val_dataset = None
         env = None
         eval_env = robomimic_utils.make_eval_env("robomimic-lift")

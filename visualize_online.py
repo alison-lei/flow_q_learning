@@ -8,24 +8,24 @@ with open("70_online_finetune_log_100000.pkl", "rb") as f:
 print(data[0])
 
 
-steps = []
-s_q = []
-# print q function of a success and failure
-for i, episode in enumerate(data):
-    if episode["success"] == True:
-        s_q = episode["q_values"]
-        length = episode["episode_length"]
-        break
+# steps = []
+# s_q = []
+# # print q function of a success and failure
+# for i, episode in enumerate(data):
+#     if episode["success"] == True:
+#         s_q = episode["q_values"]
+#         length = episode["episode_length"]
+#         break
 
-for i in range(length):
-    steps.append(i+1)
+# for i in range(length):
+#     steps.append(i+1)
         
 
-plt.plot(steps, s_q, color='blue', marker='None', linestyle='-')
-plt.title("q values for online finetuning")
-plt.xlabel("steps")
-plt.ylabel("q values")
-plt.savefig("qfunction_video_online.png", dpi=140)
+# plt.plot(steps, s_q, color='blue', marker='None', linestyle='-')
+# plt.title("q values for online finetuning")
+# plt.xlabel("steps")
+# plt.ylabel("q values")
+# plt.savefig("qfunction_video_online.png", dpi=140)
 
 
 

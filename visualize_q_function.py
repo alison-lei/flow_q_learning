@@ -114,30 +114,30 @@ def main(_):
     
 
     # this bottom part is for just visualizing the training data as videos
-    # # pull the full dataset arrays (ReplayBuffer/Dataset stores them as fields)
-    # obs_all  = np.asarray(train_dataset['observations'])
-    # act_all  = np.asarray(train_dataset['actions'])
-    # term_all = np.asarray(train_dataset['terminals'])
-    # # find episode boundaries: a trajectory ends where terminals == 1
-    # end_idxs = np.where(term_all > 0.5)[0]
-    # starts = np.concatenate([[0], end_idxs[:-1] + 1])
-    # bounds = list(zip(starts, end_idxs + 1))[:5]   # first 5 trajectories
-    # plt.figure(figsize=(9, 5))
-    # for ei, (s, e) in enumerate(bounds):
-    #     obs = obs_all[s:e]
-    #     act = act_all[s:e]
-    #     # Q(s,a) for the dataset's own state-action pairs, meaned over the ensemble
-    #     qs = agent.network.select('critic')(obs, actions=act)   # (ensemble, T)
-    #     q = np.asarray(jnp.mean(qs, axis=0))                    # (T,)
-    #     plt.plot(q, marker='.', label=f"traj {ei} (len {e-s})")
-    #     print(f"traj {ei}: len={e-s}  Q first={q[0]:.2f}  last={q[-1]:.2f}")
-    # plt.xlabel("step"); plt.ylabel("Q(s, a)")
-    # plt.title(f"Per-step Q on first 5 training trajectories (epoch {FLAGS.restore_epoch})")
-    # plt.legend()
-    # plt.savefig("q_train_traj_300.png", dpi=120)
-    # print("saved q_train_traj_300.png")
-    # wandb.log({"q_train_traj": wandb.Image("q_train_traj_300.png")}, step=FLAGS.restore_epoch)
-    # return
+    # pull the full dataset arrays (ReplayBuffer/Dataset stores them as fields)
+    obs_all  = np.asarray(train_dataset['observations'])
+    act_all  = np.asarray(train_dataset['actions'])
+    term_all = np.asarray(train_dataset['terminals'])
+    # find episode boundaries: a trajectory ends where terminals == 1
+    end_idxs = np.where(term_all > 0.5)[0]
+    starts = np.concatenate([[0], end_idxs[:-1] + 1])
+    bounds = list(zip(starts, end_idxs + 1))[:5]   # first 5 trajectories
+    plt.figure(figsize=(9, 5))
+    for ei, (s, e) in enumerate(bounds):
+        obs = obs_all[s:e]
+        act = act_all[s:e]
+        # Q(s,a) for the dataset's own state-action pairs, meaned over the ensemble
+        qs = agent.network.select('critic')(obs, actions=act)   # (ensemble, T)
+        q = np.asarray(jnp.mean(qs, axis=0))                    # (T,)
+        plt.plot(q, marker='.', label=f"traj {ei} (len {e-s})")
+        print(f"traj {ei}: len={e-s}  Q first={q[0]:.2f}  last={q[-1]:.2f}")
+    plt.xlabel("step"); plt.ylabel("Q(s, a)")
+    plt.title(f"Per-step Q on first 5 training trajectories (epoch {FLAGS.restore_epoch})")
+    plt.legend()
+    plt.savefig("20_ep_q_train_traj_70.png", dpi=120)
+    print("20_ep_saved q_train_traj_70.png")
+    wandb.log({"q_train_traj": wandb.Image("20_ep_q_train_traj_70.png")}, step=FLAGS.restore_epoch)
+    return
 
     # record graphs of q values per episode
     if FLAGS.restore_path is not None:
@@ -176,11 +176,11 @@ def main(_):
         plt.legend(dict(zip(l, h)).values(), dict(zip(l, h)).keys())
         plt.xlabel("step"); plt.ylabel("Q(s, a)")
         plt.title(f"Per-step Q values (epoch {FLAGS.restore_epoch})")
-        plt.savefig("q_traces_70.png", dpi=120)
-        print("saved q_traces_70.png")
+        plt.savefig("20_ep_q_traces_70.png", dpi=120)
+        print("20_ep_saved q_traces_70.png")
 
         # optional: log to wandb too
-        wandb.log({"q_traces": wandb.Image("q_traces_70.png")}, step=FLAGS.restore_epoch)
+        wandb.log({"q_traces": wandb.Image("20_ep_q_traces_70.png")}, step=FLAGS.restore_epoch)
         return
 
 
@@ -207,113 +207,6 @@ def main(_):
         print({k: v for k, v in eval_metrics.items() if k != 'video'})
         return
     # --- end eval-only ---
-
-    # # Train agent.
-    # train_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'train.csv'))
-    # eval_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'eval.csv'))
-    # first_time = time.time()
-    # last_time = time.time()
-    # step = 0
-    # done = True
-    # expl_metrics = dict()
-    # online_rng = jax.random.PRNGKey(FLAGS.seed)
-    
-    # # each step processes a batch size of information randomly sampled with replacement from train dataset
-    # for i in tqdm.tqdm(range(1, FLAGS.offline_steps + FLAGS.online_steps + 1), smoothing=0.1, dynamic_ncols=True):
-    #     if i <= FLAGS.offline_steps:
-    #         # Offline RL.
-    #         batch = train_dataset.sample(config['batch_size'])
-    #         if config['agent_name'] == 'rebrac':
-    #             agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
-    #         else:
-    #             agent, update_info = agent.update(batch)
-    #     else:
-    #         # Online fine-tuning.
-    #         online_rng, key = jax.random.split(online_rng)
-    #         if done and env is not None:
-    #             step = 0
-    #             ob, _ = env.reset()
-    #         action = agent.sample_actions(observations=ob, temperature=1, seed=key)
-    #         action = np.array(action)
-    #         next_ob, reward, terminated, truncated, info = env.step(action.copy())
-    #         done = terminated or truncated
-    #         if 'antmaze' in FLAGS.env_name and (
-    #             'diverse' in FLAGS.env_name or 'play' in FLAGS.env_name or 'umaze' in FLAGS.env_name
-    #         ):
-    #             # Adjust reward for D4RL antmaze.
-    #             reward = reward - 1.0
-    #         replay_buffer.add_transition(
-    #             dict(
-    #                 observations=ob,
-    #                 actions=action,
-    #                 rewards=reward,
-    #                 terminals=float(done),
-    #                 masks=1.0 - terminated,
-    #                 next_observations=next_ob,
-    #             )
-    #         )
-    #         ob = next_ob
-    #         if done:
-    #             expl_metrics = {f'exploration/{k}': np.mean(v) for k, v in flatten(info).items()}
-    #         step += 1
-
-    #         # Update agent.
-    #         if FLAGS.balanced_sampling:
-    #             # Half-and-half sampling from the training dataset and the replay buffer.
-    #             dataset_batch = train_dataset.sample(config['batch_size'] // 2)
-    #             replay_batch = replay_buffer.sample(config['batch_size'] // 2)
-    #             batch = {k: np.concatenate([dataset_batch[k], replay_batch[k]], axis=0) for k in dataset_batch}
-    #         else:
-    #             batch = replay_buffer.sample(config['batch_size'])
-    #         if config['agent_name'] == 'rebrac':
-    #             agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
-    #         else:
-    #             agent, update_info = agent.update(batch)
-
-    #     # Log metrics.
-    #     if i % FLAGS.log_interval == 0:
-    #         train_metrics = {f'training/{k}': v for k, v in update_info.items()}
-    #         if val_dataset is not None:
-    #             val_batch = val_dataset.sample(config['batch_size'])
-    #             _, val_info = agent.total_loss(val_batch, grad_params=None)
-    #             train_metrics.update({f'validation/{k}': v for k, v in val_info.items()})
-    #         train_metrics['time/epoch_time'] = (time.time() - last_time) / FLAGS.log_interval # average time for each step (256 batch size)
-    #         train_metrics['time/total_time'] = time.time() - first_time
-    #         train_metrics.update(expl_metrics)
-    #         last_time = time.time()
-    #         wandb.log(train_metrics, step=i)
-    #         train_logger.log(train_metrics, step=i)
-
-    #     # Evaluate agent.
-    #     if FLAGS.eval_interval != 0 and (i == 1 or i % FLAGS.eval_interval == 0):
-    #         renders = []
-    #         eval_metrics = {}
-    #         eval_info, trajs, cur_renders = evaluate(
-    #             agent=agent,
-    #             env=eval_env,
-    #             config=config,
-    #             num_eval_episodes=FLAGS.eval_episodes,
-    #             num_video_episodes=FLAGS.video_episodes,
-    #             video_frame_skip=FLAGS.video_frame_skip,
-    #         )
-    #         renders.extend(cur_renders)
-    #         for k, v in eval_info.items():
-    #             eval_metrics[f'evaluation/{k}'] = v
-
-    #         if FLAGS.video_episodes > 0:
-    #             video = get_wandb_video(renders=renders)
-    #             eval_metrics['video'] = video
-    #         # log in both wandb and locally in CSV file
-    #         wandb.log(eval_metrics, step=i)
-    #         eval_logger.log(eval_metrics, step=i)
-
-    #     # Save agent.
-    #     if i % FLAGS.save_interval == 0:
-    #         save_agent(agent, FLAGS.save_dir, i)
-
-    # train_logger.close()
-    # eval_logger.close()
-
 
 if __name__ == '__main__':
     app.run(main) # absl, parses flags, loads config file, and defines all flags, then runs main(args)

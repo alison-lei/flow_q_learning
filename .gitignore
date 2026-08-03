@@ -11,4 +11,6 @@ exp
 help.py
 MUJOCO_LOG.TXT
 README.md
-online_videos/
+online_videos
+
+100_traj
