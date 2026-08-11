@@ -34,11 +34,9 @@ flags.DEFINE_integer("episode", None,
 flags.DEFINE_string("pkl", "70_online_finetune_log_100000.pkl",
                     "Path to the per-episode pickle log.")
 flags.DEFINE_string("video_dir", "online_videos", "Folder of rendered episode videos.")
-flags.DEFINE_string("out_dir", "q_synced_videos", "Where to write the combined video.")
+flags.DEFINE_string("out_dir", "./", "Where to write the combined video.")
 flags.DEFINE_float("fps", None,
                    "Override output fps. Default: source video's fps (should be 10).")
-
-flags.mark_flag_as_required("episode")
 
 
 VIDEO_EXTS = (".mp4", ".avi", ".mov", ".mkv", ".gif", ".webm")
@@ -64,7 +62,16 @@ def load_episodes(pkl_path):
         raise ValueError("No episode entries with 'q_values' found in pkl.")
     return episodes
 
+# make videos plots for all fails
+# def find_episode(episodes, success=True):
+#     matches = [e for e in episodes if e.get("success") == success]
+#     if not matches:
+#         raise ValueError(
+#             f"All successes"
+#         )
+#     return matches
 
+# to find a specific episode number
 def find_episode(episodes, ep_num):
     """Return the single entry whose episode_num == ep_num."""
     matches = [e for e in episodes if e.get("episode_num") == ep_num]
@@ -178,6 +185,7 @@ def main(_):
     os.makedirs(FLAGS.out_dir, exist_ok=True)
 
     episodes = load_episodes(FLAGS.pkl)
+    # if want to find a specific episode num
     ep = find_episode(episodes, FLAGS.episode)
     video_path = find_video(FLAGS.video_dir, FLAGS.episode)
 
@@ -204,6 +212,41 @@ def main(_):
     writer.close()
     print(f"wrote {out_path}  ({len(combined)} frames @ {out_fps:.1f} fps)")
 
+
+    # eps gives all the failed episodes
+    # success_count = 0
+    # eps = find_episode(episodes)
+    # for ep in eps:
+    #     success_count += 1
+
+    #     ep_num = ep["episode_num"]
+    #     video_path = find_video(FLAGS.video_dir, ep_num)
+
+    #     frames, src_fps = read_frames(video_path)
+    #     if not frames:
+    #         raise ValueError(f"Video {video_path} contained no frames.")
+
+    #     q_values = ep["q_values"]
+    #     success = ep.get("success", False)
+    #     print(f"episode {ep_num}: video={os.path.basename(video_path)}  "
+    #         f"frames={len(frames)}  q_len={len(q_values)}  success={success}  "
+    #         f"steps={ep.get('step_start')}-{ep.get('step_end')}")
+    #     if len(frames) != len(q_values):
+    #         print(f"  note: frame count != q length -> syncing proportionally "
+    #             f"(check recording; at 10fps==CONTROL_FREQ they should match)")
+
+    #     combined = build_combined_video(frames, q_values, success)
+
+    #     out_fps = FLAGS.fps if FLAGS.fps is not None else src_fps
+    #     out_path = os.path.join(FLAGS.out_dir, f"q_synced_ep{ep_num:05d}.mp4")
+    #     writer = imageio.get_writer(out_path, fps=out_fps, macro_block_size=1)
+    #     for f in combined:
+    #         writer.append_data(f)
+    #     writer.close()
+    #     print(f"wrote {out_path}  ({len(combined)} frames @ {out_fps:.1f} fps)")
+
+    #     if success_count == 5:
+    #         break
 
 if __name__ == "__main__":
     app.run(main)

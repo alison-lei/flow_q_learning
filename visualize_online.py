@@ -2,7 +2,7 @@ import pickle
 import matplotlib
 import matplotlib.pyplot as plt
 
-with open("70_online_finetune_log_100000.pkl", "rb") as f:
+with open("100_traj/120000/q_log_120000.pkl", "rb") as f:
     data = pickle.load(f)
 
 print(data[0])

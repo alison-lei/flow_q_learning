@@ -19,3 +19,5 @@ opencv-python
 # shimmy[gym-v21,gym-v26]  # For d4rl.
 # Cython < 3  # For d4rl.
 # d4rl
+
+scikit-learn
