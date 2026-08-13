@@ -1,133 +1,134 @@
-# import robosuite
-# import numpy as np
-# import pickle
-# from utils.datasets import Dataset
-
-# with open('robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl', 'rb') as f:
-#     data = pickle.load(f)
-
-# t = data[0]
-# obs = t['observations']['state'].squeeze()
-# orig = t['infos']['original_state_obs']
-
-# print("full obs dim:", obs.shape)
-# print("full obs values:", obs)
-# print()
-# print("gripper:", np.array([orig['gripper_pose']]).shape, orig['gripper_pose'])
-# print("privileged:", orig['privileged'].shape, orig['privileged'])
-# print("tcp_vel:", orig['tcp_vel'].shape, orig['tcp_vel'])
-# print("tcp_pose:", orig['tcp_pose'].shape, orig['tcp_pose'])
-# print("wrist_force:", orig['wrist_force'].shape, orig['wrist_force'])
-# print("wrist_torque:", orig['wrist_torque'].shape, orig['wrist_torque'])
-# print()
-# print("sum of all fields:", 
-#     1 + orig['privileged'].shape[0] + orig['tcp_vel'].shape[0] + 
-#     orig['tcp_pose'].shape[0] + orig['wrist_force'].shape[0] + orig['wrist_torque'].shape[0])
-
-# train_dataset = Dataset.create(**train_dataset)
-# # add this right after
-# print("example_batch observations shape:", train_dataset.sample(1)['observations'].shape)
-# print("example_batch actions shape:", train_dataset.sample(1)['actions'].shape)
-# example_batch = train_dataset.sample(1)
-# print("example_batch observations shape:", example_batch['observations'].shape)
-# print("example_batch actions shape:", example_batch['actions'].shape)
-
+import robosuite
 import numpy as np
 import pickle
-from envs import robomimic_utils
+from utils.datasets import Dataset
 
-file_path = "robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl"
-with open(file_path, "rb") as f:
+with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
     data = pickle.load(f)
-print(data[0])
 
 t = data[0]
-obs = t['observations']['state'][0]
-orig = t['infos']['original_state_obs']
+print(t)
+# # obs = t['observations']['state'].squeeze()
+# # orig = t['infos']['original_state_obs']
 
-print("full obs:", obs)
-print("gripper:", orig['gripper_pose'])
-print("privileged:", orig['privileged'])
-print("tcp_vel:", orig['tcp_vel'])
-print("wrist_force:", orig['wrist_force'])
-print("wrist_torque:", orig['wrist_torque'])
+# # print("full obs dim:", obs.shape)
+# # print("full obs values:", obs)
+# # print()
+# # print("gripper:", np.array([orig['gripper_pose']]).shape, orig['gripper_pose'])
+# # print("privileged:", orig['privileged'].shape, orig['privileged'])
+# # print("tcp_vel:", orig['tcp_vel'].shape, orig['tcp_vel'])
+# # print("tcp_pose:", orig['tcp_pose'].shape, orig['tcp_pose'])
+# # print("wrist_force:", orig['wrist_force'].shape, orig['wrist_force'])
+# # print("wrist_torque:", orig['wrist_torque'].shape, orig['wrist_torque'])
+# # print()
+# # print("sum of all fields:", 
+# #     1 + orig['privileged'].shape[0] + orig['tcp_vel'].shape[0] + 
+# #     orig['tcp_pose'].shape[0] + orig['wrist_force'].shape[0] + orig['wrist_torque'].shape[0])
 
-print(type(orig['gripper_pose']))
-print("!!!!!", np.array(orig['gripper_pose']).shape)
+# # train_dataset = Dataset.create(**train_dataset)
+# # # add this right after
+# # print("example_batch observations shape:", train_dataset.sample(1)['observations'].shape)
+# # print("example_batch actions shape:", train_dataset.sample(1)['actions'].shape)
+# # example_batch = train_dataset.sample(1)
+# # print("example_batch observations shape:", example_batch['observations'].shape)
+# # print("example_batch actions shape:", example_batch['actions'].shape)
 
-print(data[1]["observations"]["state"][0])
+# import numpy as np
+# import pickle
+# from envs import robomimic_utils
 
-print("dataset privileged:", t['infos']['original_state_obs']['privileged'])
-print("dataset privileged shape:", t['infos']['original_state_obs']['privileged'].shape)
+# file_path = "robomimic_datasets/lift_300_demos_scripted_flow_2026-06-10_14-29-49-254753.pkl"
+# with open(file_path, "rb") as f:
+#     data = pickle.load(f)
+# print(data[0])
 
-print("next data element", data[1])
+# t = data[0]
+# obs = t['observations']['state'][0]
+# orig = t['infos']['original_state_obs']
 
-print("gripper pose", data[1]["infos"]["original_state_obs"]["gripper_pose"])
+# print("full obs:", obs)
+# print("gripper:", orig['gripper_pose'])
+# print("privileged:", orig['privileged'])
+# print("tcp_vel:", orig['tcp_vel'])
+# print("wrist_force:", orig['wrist_force'])
+# print("wrist_torque:", orig['wrist_torque'])
+
+# print(type(orig['gripper_pose']))
+# print("!!!!!", np.array(orig['gripper_pose']).shape)
+
+# print(data[1]["observations"]["state"][0])
+
+# print("dataset privileged:", t['infos']['original_state_obs']['privileged'])
+# print("dataset privileged shape:", t['infos']['original_state_obs']['privileged'].shape)
+
+# print("next data element", data[1])
+
+# print("gripper pose", data[1]["infos"]["original_state_obs"]["gripper_pose"])
 
 
-print("////////////////////////")
+# print("////////////////////////")
 
 
-env = robomimic_utils.make_eval_env("robomimic-lift")
-obs, _ = env.reset()
-print(obs)
-dataset_action = t["actions"]
-# pick a dataset transition collected from a comparable reset, feed its stored action
-next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
-# next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
-# tcp_pose(7:13) should now match too, since the frame is reproduced
-print(next_obs)
-print(data[1]["observations"]["state"])
+# env = robomimic_utils.make_eval_env("robomimic-lift")
+# obs, _ = env.reset()
+# print(obs)
+# dataset_action = t["actions"]
+# # pick a dataset transition collected from a comparable reset, feed its stored action
+# next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
+# # next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
+# # tcp_pose(7:13) should now match too, since the frame is reproduced
+# print(next_obs)
+# print(data[1]["observations"]["state"])
 
-for i in range(150, 300):
-    gripper_pose = data[i]["observations"]["state"][0][0]
-    # print(gripper_pose)
-    arr = data[i]["next_observations"]["state"][0][0]
-    gripper_val = data[i]["infos"]["original_state_obs"]["gripper_pose"]
-    # print(gripper_val)
-    # if (abs(gripper_val - arr)) > 0.1:
-    #     print("/////////////////////////////////////")
-    #     print(data[i])
-        # print("//////////////////////////////////")
-        # print(data[i-1])
-        # print("not the same as pose")
-        # print("arr: ", arr)
-        # print("gripper_val: ", gripper_val)
-        # gripper_pose is equal to index 0 of next_observations
-    # if arr != 1:
-    #     print("hello: ", arr)
+# for i in range(150, 300):
+#     gripper_pose = data[i]["observations"]["state"][0][0]
+#     # print(gripper_pose)
+#     arr = data[i]["next_observations"]["state"][0][0]
+#     gripper_val = data[i]["infos"]["original_state_obs"]["gripper_pose"]
+#     # print(gripper_val)
+#     # if (abs(gripper_val - arr)) > 0.1:
+#     #     print("/////////////////////////////////////")
+#     #     print(data[i])
+#         # print("//////////////////////////////////")
+#         # print(data[i-1])
+#         # print("not the same as pose")
+#         # print("arr: ", arr)
+#         # print("gripper_val: ", gripper_val)
+#         # gripper_pose is equal to index 0 of next_observations
+#     # if arr != 1:
+#     #     print("hello: ", arr)
     
-    # gaction = data[i]['actions'][6]
+#     # gaction = data[i]['actions'][6]
     
-    # if gaction != 0: 
-    #     print("action gripper:", gaction, i)
-    #     break
+#     # if gaction != 0: 
+#     #     print("action gripper:", gaction, i)
+#     #     break
 
-obs = next_obs
-print(obs)
-dataset_action = data[17]["actions"]
-dataset_action[6] = -1
-# pick a dataset transition collected from a comparable reset, feed its stored action
-next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
-# next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
-# tcp_pose(7:13) should now match too, since the frame is reproduced
-print(next_obs)
-dataset_action[6] = 1
-for i in range(4):
-    next_obs, *_ = env.step(dataset_action)
-    print(next_obs)
-# action controlling gripper works and self.gripper_binary_state works as a latch to ensure that once or closed or
-# open it wont close or open further respectively, so when you set the action then it just stays that value
-print("////////////////////////////////////")
+# obs = next_obs
+# print(obs)
+# dataset_action = data[17]["actions"]
+# dataset_action[6] = -1
+# # pick a dataset transition collected from a comparable reset, feed its stored action
+# next_obs, *_ = env.step(dataset_action)   # dataset_action = t["actions"], the (7,) EE-frame vector
+# # next_obs should track t["next_observations"]["state"] on gripper(0) and privileged(1:7);
+# # tcp_pose(7:13) should now match too, since the frame is reproduced
+# print(next_obs)
+# dataset_action[6] = 1
+# for i in range(4):
+#     next_obs, *_ = env.step(dataset_action)
+#     print(next_obs)
+# # action controlling gripper works and self.gripper_binary_state works as a latch to ensure that once or closed or
+# # open it wont close or open further respectively, so when you set the action then it just stays that value
+# print("////////////////////////////////////")
 
-obs, _ = env.reset()
-a = np.zeros(7, dtype=np.float32); a[0] = 1.0
-for _ in range(5):
-    obs, *_ = env.step(a)
-    print(np.round(obs[7:10], 4))
+# obs, _ = env.reset()
+# a = np.zeros(7, dtype=np.float32); a[0] = 1.0
+# for _ in range(5):
+#     obs, *_ = env.step(a)
+#     print(np.round(obs[7:10], 4))
 
-for i in range(300):
-    if data[i]["infos"]["succeed"] == 1:
-        print(data[i]["infos"]["succeed"]) 
-        print(data[i])
-        break
+# for i in range(300):
+#     if data[i]["infos"]["succeed"] == 1:
+#         print(data[i]["infos"]["succeed"]) 
+#         print(data[i])
+#         break

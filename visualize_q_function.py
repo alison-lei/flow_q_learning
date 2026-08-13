@@ -1,3 +1,5 @@
+# i think this is just to make the q function graphs
+
 import os
 import platform
 

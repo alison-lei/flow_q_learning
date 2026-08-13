@@ -21,3 +21,4 @@ opencv-python
 # d4rl
 
 scikit-learn
+einops

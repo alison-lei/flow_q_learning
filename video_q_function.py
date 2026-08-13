@@ -1,3 +1,7 @@
+# i think this is for at a certain checkpoint, to just run 5 rollouts
+# record the videos and the q values at each step and then create the video and q fucntion
+# graph next to each other. Also saves to wandb
+
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))

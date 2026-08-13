@@ -1,4 +1,8 @@
 """
+This is if you have the videos and you recorded all the q values in a pkl file
+and now you want to join them
+can either get a specific episode or get all successes or all failures
+
 Videos were recorded at 10 fps == CONTROL_FREQ, so one frame == one step == one
 Q value: the sync is 1:1. (A proportional fallback is kept only in case a given
 video's frame count ever differs from its q_values length.)
