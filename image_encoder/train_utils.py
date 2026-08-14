@@ -19,7 +19,7 @@ def load_resnet10_params(agent, image_keys=("image",), public=True):
             encoder_params = pkl.load(f)
     else:  # when repo is released, download from url
         # Construct the full path to the file
-        file_path = os.path.expanduser("~/.serl/")
+        file_path = os.path.expanduser("~/.resnet10/")
         if not os.path.exists(file_path):
             os.makedirs(file_path)
         file_path = os.path.join(file_path, file_name)

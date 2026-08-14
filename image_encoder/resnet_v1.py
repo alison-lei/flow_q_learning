@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from serl_launcher.vision.data_augmentations import resize
+from image_encoder.data_augmentations import resize
 ModuleDef = Any
 
 

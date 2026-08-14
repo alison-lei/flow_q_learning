@@ -7,10 +7,9 @@ import jax.numpy as jnp
 import ml_collections
 import optax
 
-from utils.encoders import encoder_modules
 from utils.flax_utils import ModuleDict, TrainState, nonpytree_field
 from utils.networks import ActorVectorField, Value
-
+from image_encoder.encoder_wrappers import ActorEmbWrapper, CriticEmbWrapper
 
 class FQLAgent(flax.struct.PyTreeNode):
     """Flow Q-learning (FQL) agent."""
@@ -19,16 +18,22 @@ class FQLAgent(flax.struct.PyTreeNode):
     network: Any
     config: Any = nonpytree_field()
 
+
     # here you are updating the Q values so can later be used to update the actor network
     def critic_loss(self, batch, grad_params, rng):
         """Compute the FQL critic loss."""
-        rng, sample_rng = jax.random.split(rng)
+        # rng, sample_rng = jax.random.split(rng)
+        rng, sample_rng, target_dropout_rng, dropout_rng = jax.random.split(rng, 4)
         next_actions = self.sample_actions(batch['next_observations'], seed=sample_rng)
         next_actions = jnp.clip(next_actions, -1, 1)
 
         # Taking a step and calculating the Q value of next state to evaluate Q value in current state taking this action
         # the action taken does not need to be optimal but the Q value must be the highest one corresponding to the best action
-        next_qs = self.network.select('target_critic')(batch['next_observations'], actions=next_actions)
+        # next_qs = self.network.select('target_critic')(batch['next_observations'], actions=next_actions)
+        next_qs = self.network.select('target_critic')(
+            batch['next_observations'], actions=next_actions,
+            rngs={'dropout': target_dropout_rng},
+        )
         if self.config['q_agg'] == 'min':
             next_q = next_qs.min(axis=0)
         else:
@@ -38,8 +43,12 @@ class FQLAgent(flax.struct.PyTreeNode):
         target_q = batch['rewards'] + self.config['discount'] * batch['masks'] * next_q # when terminal = 1, stops bootstrapping and guessing next q value
 
         # old/current estimate of Q
-        # gradients flow tjprugh so is vru 
-        q = self.network.select('critic')(batch['observations'], actions=batch['actions'], params=grad_params)
+        # gradients flow through so is vru 
+        # q = self.network.select('critic')(batch['observations'], actions=batch['actions'], params=grad_params)
+        q = self.network.select('critic')(
+            batch['observations'], actions=batch['actions'], params=grad_params,
+            rngs={'dropout': dropout_rng},
+        )
         critic_loss = jnp.square(q - target_q).mean() # find difference squared to see the error in previous estimate
 
         # critic_loss is the temporal difference squared
@@ -79,7 +88,12 @@ class FQLAgent(flax.struct.PyTreeNode):
         # freezed parameters so can evaluate the actor loss based on how high q values are
         # this is how the actor network is updated based on the critic network
         actor_actions = jnp.clip(actor_actions, -1, 1)
-        qs = self.network.select('critic')(batch['observations'], actions=actor_actions) # current estimate of Q in this state, critic for one-step specifically
+        # qs = self.network.select('critic')(batch['observations'], actions=actor_actions) 
+        # current estimate of Q in this state, critic for one-step specifically
+        qs = self.network.select('critic')(
+            batch['observations'], actions=actor_actions,
+            rngs={'dropout': rng},
+        )
         q = jnp.mean(qs, axis=0)
 
         # this is just calculating the current q and is neg so would result in lower loss for higher q
@@ -150,21 +164,35 @@ class FQLAgent(flax.struct.PyTreeNode):
 
         return self.replace(network=new_network, rng=new_rng), info
 
+    # just proprioception
+    # @jax.jit
+    # def sample_actions(
+    #     self,
+    #     observations,
+    #     seed=None,
+    #     temperature=1.0,
+    # ):
+    #     """Sample actions from the one-step policy."""
+    #     action_seed, noise_seed = jax.random.split(seed)
+    #     noises = jax.random.normal(
+    #         action_seed,
+    #         (
+    #             *observations.shape[: -len(self.config['ob_dims'])],
+    #             self.config['action_dim'],
+    #         ),
+    #     )
+    #     actions = self.network.select('actor_onestep_flow')(observations, noises)
+    #     actions = jnp.clip(actions, -1, 1)
+    #     return actions
+
+    # images + proprioception
     @jax.jit
-    def sample_actions(
-        self,
-        observations,
-        seed=None,
-        temperature=1.0,
-    ):
+    def sample_actions(self, observations, seed=None, temperature=1.0):
         """Sample actions from the one-step policy."""
         action_seed, noise_seed = jax.random.split(seed)
         noises = jax.random.normal(
             action_seed,
-            (
-                *observations.shape[: -len(self.config['ob_dims'])],
-                self.config['action_dim'],
-            ),
+            (observations['state'].shape[0], self.config['action_dim']),
         )
         actions = self.network.select('actor_onestep_flow')(observations, noises)
         actions = jnp.clip(actions, -1, 1)
@@ -208,16 +236,28 @@ class FQLAgent(flax.struct.PyTreeNode):
         rng, init_rng = jax.random.split(rng, 2)
 
         ex_times = ex_actions[..., :1]
-        ob_dims = ex_observations.shape[1:]
+        # proprio
+        # ob_dims = ex_observations.shape[1:]
+        # images + proprio
+        ob_dims = ex_observations['state'].shape[1:]
         action_dim = ex_actions.shape[-1]
 
         # Define encoders.
+        # just proprioception data
+        # encoders = dict()
+        # if config['encoder'] is not None:
+        #     encoder_module = encoder_modules[config['encoder']]
+        #     encoders['critic'] = encoder_module()
+        #     encoders['actor_bc_flow'] = encoder_module()
+        #     encoders['actor_onestep_flow'] = encoder_module()
+
+        # image embeddings and proprioception data
         encoders = dict()
-        if config['encoder'] is not None:
-            encoder_module = encoder_modules[config['encoder']]
-            encoders['critic'] = encoder_module()
-            encoders['actor_bc_flow'] = encoder_module()
-            encoders['actor_onestep_flow'] = encoder_module()
+        encoders['critic'] = CriticEmbWrapper(use_proprio=True)
+        actor_encoder = ActorEmbWrapper(use_proprio=True)
+        encoders['actor_bc_flow'] = actor_encoder
+        encoders['actor_onestep_flow'] = actor_encoder
+
 
         # Define networks.
         critic_def = Value(

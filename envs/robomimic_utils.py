@@ -6,29 +6,68 @@ from envs.active_rl_for_assembly.lift_env import PandaLiftGymEnv
 from scipy.spatial.transform import Rotation as R
 # from envs.active_rl_for_assembly.wrappers import Quat2EulerWrapper
 from envs.active_rl_for_assembly import scalar_first_modified_wrappers
+
+# just proprioception
+# def lift_dataset(path: str) -> dict:
+#     with open(path, "rb") as f:
+#         data = pickle.load(f)
+    
+#     # data is a list of dictionaries
+
+#     # for i in range (len(data)):
+#     #     if (data[i]['rewards'] == 1):
+#     #         print(data[i]['rewards'])
+
+#     observations = []
+#     actions = []
+#     next_observations = []
+#     rewards = []
+#     masks = []
+#     terminals = []
+
+#     for t in data:
+#         obs = t["observations"]["state"]
+#         next_obs = t["next_observations"]["state"]
+
+#         observations.append(obs.squeeze(0))
+#         next_observations.append(next_obs.squeeze(0))
+
+#         actions.append(t["actions"])
+#         rewards.append(t["rewards"])
+#         masks.append(t["masks"])
+#         terminals.append(t["dones"])
+
+#     dataset = {
+#         "observations": np.asarray(observations, dtype=np.float32),
+#         "actions": np.asarray(actions, dtype=np.float32),
+#         "next_observations": np.asarray(next_observations, dtype=np.float32),
+#         "rewards": np.asarray(rewards, dtype=np.float32),
+#         "masks": np.asarray(masks, dtype=np.float32), # masks = 1 - terminals, stops bootstrapping (guessing the final reward based on what its guess of how much the next state is worth)
+#         "terminals": np.asarray(terminals, dtype=np.float32),
+#     }
+
+#     return dataset
+
+
+# image embeddings and proprioception
 def lift_dataset(path: str) -> dict:
     with open(path, "rb") as f:
         data = pickle.load(f)
-    
-    # data is a list of dictionaries
 
-    # for i in range (len(data)):
-    #     if (data[i]['rewards'] == 1):
-    #         print(data[i]['rewards'])
-
-    observations = []
-    actions = []
-    next_observations = []
-    rewards = []
-    masks = []
-    terminals = []
+    obs_state, obs_side, obs_wrist, obs_emb = [], [], [], []
+    next_state, next_side, next_wrist, next_emb = [], [], [], []
+    actions, rewards, masks, terminals = [], [], [], []
 
     for t in data:
-        obs = t["observations"]["state"]
-        next_obs = t["next_observations"]["state"]
+        obs_state.append(t["observations"]["state"])
+        obs_side.append(t["observations"]["side_policy_256"])
+        obs_wrist.append(t["observations"]["wrist_1"])
+        obs_emb.append(t["embeddings"].squeeze(0))
 
-        observations.append(obs.squeeze(0))
-        next_observations.append(next_obs.squeeze(0))
+        next_state.append(t["next_observations"]["state"])
+        next_side.append(t["next_observations"]["side_policy_256"])
+        next_wrist.append(t["next_observations"]["wrist_1"])
+        next_emb.append(t["next_embeddings"].squeeze(0))
 
         actions.append(t["actions"])
         rewards.append(t["rewards"])
@@ -36,14 +75,23 @@ def lift_dataset(path: str) -> dict:
         terminals.append(t["dones"])
 
     dataset = {
-        "observations": np.asarray(observations, dtype=np.float32),
+        "observations": {
+            "state": np.asarray(obs_state, dtype=np.float32),        # (N, 2, 19)
+            "side_policy_256": np.asarray(obs_side, dtype=np.uint8), # (N, 2, H, W, 3)
+            "wrist_1": np.asarray(obs_wrist, dtype=np.uint8),
+            "embeddings": np.asarray(obs_emb, dtype=np.float32),
+        },
+        "next_observations": {
+            "state": np.asarray(next_state, dtype=np.float32),
+            "side_policy_256": np.asarray(next_side, dtype=np.uint8),
+            "wrist_1": np.asarray(next_wrist, dtype=np.uint8),
+            "embeddings": np.asarray(next_emb, dtype=np.float32),
+        },
         "actions": np.asarray(actions, dtype=np.float32),
-        "next_observations": np.asarray(next_observations, dtype=np.float32),
         "rewards": np.asarray(rewards, dtype=np.float32),
-        "masks": np.asarray(masks, dtype=np.float32), # masks = 1 - terminals, stops bootstrapping (guessing the final reward based on what its guess of how much the next state is worth)
+        "masks": np.asarray(masks, dtype=np.float32),
         "terminals": np.asarray(terminals, dtype=np.float32),
     }
-
     return dataset
 
 

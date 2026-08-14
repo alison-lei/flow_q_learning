@@ -62,8 +62,8 @@ def evaluate(
     # list containing dictionaries, each dictionary is an episode and contains lists of observations (ex) at each timestep
     trajs = []
     stats = defaultdict(list)
-
     renders = []
+    
     # iterate through each episode
     for i in trange(num_eval_episodes + num_video_episodes):
         traj = defaultdict(list)

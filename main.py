@@ -30,13 +30,13 @@ flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
 
 flags.DEFINE_integer('offline_steps', 200000, 'Number of offline steps.')
 flags.DEFINE_integer('online_steps', 0, 'Number of online steps.')
-flags.DEFINE_integer('buffer_size', 2000000, 'Replay buffer size.')
+flags.DEFINE_integer('buffer_size', 2000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 500, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 10000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval', 20000, 'Saving interval.')
 
-flags.DEFINE_integer('eval_episodes', 50, 'Number of evaluation episodes.')
-flags.DEFINE_integer('video_episodes', 5, 'Number of video episodes for each task.')
+flags.DEFINE_integer('eval_episodes', 0, 'Number of evaluation episodes.')
+flags.DEFINE_integer('video_episodes', 0, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 1, 'Frame skip for videos.')
     
 flags.DEFINE_float('p_aug', None, 'Probability of applying image augmentation.')
@@ -49,7 +49,7 @@ config_flags.DEFINE_config_file('agent', 'agents/fql.py', lock_config=False)
 def main(_):
     # Set up logger.
     exp_name = get_exp_name(FLAGS.seed)
-    setup_wandb(project='fql', group=FLAGS.run_group, 
+    setup_wandb(project='image_proprio', group=FLAGS.run_group, 
     name=exp_name)
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)
@@ -59,6 +59,7 @@ def main(_):
     
     # Make environment and datasets.
     config = FLAGS.agent
+    config['encoder'] = 'image_proprio'
     env, eval_env, train_dataset, val_dataset = make_env_and_datasets(FLAGS.env_name, frame_stack=FLAGS.frame_stack)
 
     # create popup window for live viewer
