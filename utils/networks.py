@@ -174,23 +174,15 @@ class Value(nn.Module):
 
         self.value_net = value_net
 
-    def __call__(self, observations, actions=None):
-        """Return values or critic values.
-
-        Args:
-            observations: Observations.
-            actions: Actions (optional).
-        """
+    def __call__(self, observations, actions=None, train=False):
         if self.encoder is not None:
-            inputs = [self.encoder(observations)]
+            inputs = [self.encoder(observations, train=train)]
         else:
             inputs = [observations]
         if actions is not None:
             inputs.append(actions)
         inputs = jnp.concatenate(inputs, axis=-1)
-
         v = self.value_net(inputs).squeeze(-1)
-
         return v
 
 

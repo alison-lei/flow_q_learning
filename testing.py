@@ -1,13 +1,78 @@
 import robosuite
 import numpy as np
 import pickle
+import itertools
 from utils.datasets import Dataset
+from octo.model.octo_model import OctoModel
+from scipy.spatial.transform import Rotation as R
+from envs.robomimic_utils import make_eval_env
 
 with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
     data = pickle.load(f)
 
-t = data[0]
-print(t)
+# octo_model = OctoModel.load_pretrained("hf://rail-berkeley/octo-small")
+# tasks = octo_model.create_tasks(texts=["pick up the red block"])
+
+def add_embeddings(observation):
+    octo_obs = {
+        "image_primary": observation["side_policy_256"][np.newaxis, ...],
+        "image_wrist": observation["wrist_1"][np.newaxis, ...],
+    }
+    timestep_pad_mask = np.array([[True, True]])
+    transformer_outputs = octo_model.run_transformer(octo_obs, tasks, timestep_pad_mask, train=False)
+    action_embeddings = transformer_outputs["readout_action"].tokens.mean(axis=-2)  # (1, 2, embed_dim)
+    action_embeddings = action_embeddings[:, -1, :]                                  # (1, embed_dim)
+    observation = dict(observation)
+    observation["embeddings"] = action_embeddings[0]
+    return observation
+
+
+# training_transition = data[0]
+# stored = training_transition["embeddings"]
+# reconstructed = add_embeddings(training_transition["observations"])["embeddings"]
+# print(np.allclose(stored, reconstructed, atol=1))
+
+# info = training_transition["infos"]["original_state_obs"]
+# state = training_transition["next_observations"]["state"][-1]   # last window frame, (19,)
+
+# for name, val in sorted(info.items()):
+#     val = np.atleast_1d(val)
+#     print(f"{name}: dim={val.shape}, value={val[:3]}...")
+
+# print("state:", state)
+
+first_transition = data[0]   # first step of a trajectory
+reset_pose = first_transition["reset_pose"]
+
+env = make_eval_env("robomimic-lift")
+obs, info = env.reset(options={"reset_pose": reset_pose, "retry_from_same_state": True})
+
+live_state = obs["state"]
+stored_state = first_transition["observations"]["state"]
+
+print("live: ", live_state)
+print("stored:", stored_state)
+print("match:", np.allclose(live_state, stored_state, atol=1e-3))
+# candidates = [
+#     "hf://rail-berkeley/octo-small", // this
+#     "hf://rail-berkeley/octo-small-1.5",
+#     "hf://rail-berkeley/octo-base",
+#     "hf://rail-berkeley/octo-base-1.5",
+# ]
+
+# for path in candidates:
+#     m = OctoModel.load_pretrained(path)
+#     t = m.create_tasks(texts=["pick up the red block"])
+#     obs = {
+#         "image_primary": training_transition["observations"]["side_policy_256"][np.newaxis, ...],
+#         "image_wrist": training_transition["observations"]["wrist_1"][np.newaxis, ...],
+#     }
+#     out = m.run_transformer(obs, t, np.array([[True, True]]), train=False)
+#     recon = out["readout_action"].tokens.mean(axis=-2)[:, -1, :][0]
+#     print(path, "-> matches:", np.allclose(stored, recon, atol=1e-2),
+#           "| max abs diff:", np.max(np.abs(stored - recon)))
+
+# print(t)
 # # obs = t['observations']['state'].squeeze()
 # # orig = t['infos']['original_state_obs']
 

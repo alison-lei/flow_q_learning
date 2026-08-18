@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+from collections import deque
 import gymnasium as gym
 from envs.active_rl_for_assembly.lift_env_cfg import LiftEnvConfig
 from envs.active_rl_for_assembly.lift_env import PandaLiftGymEnv
@@ -94,8 +95,11 @@ def lift_dataset(path: str) -> dict:
     }
     return dataset
 
+# for proprio
+# PROPRIO_KEYS = ["gripper_pose", "privileged", "tcp_pose"]
 
-PROPRIO_KEYS = ["gripper_pose", "privileged", "tcp_pose"]
+# for images + proprio
+PROPRIO_KEYS = ["tcp_pose", "tcp_vel", "gripper_pose", "wrist_force", "wrist_torque"]
 
 class StateArrayWrapper(gym.Wrapper):
     """FQL consumes a flat (13,) array; SERLObsWrapper emits {'state': array}."""
@@ -113,6 +117,35 @@ class StateArrayWrapper(gym.Wrapper):
 
     def render(self):
         return self.env.render()    
+
+
+
+class HistoryWrapper(gym.Wrapper):
+    """Maintains a rolling window of the last `horizon` observations,
+    stacking every key in the obs dict along a new leading axis.
+    Matches data-collection behavior: at reset, the first observation
+    fills the whole window (duplicated), not zero-padded.
+    """
+    def __init__(self, env, horizon=2):
+        super().__init__(env)
+        self.horizon = horizon
+        self.history = deque(maxlen=horizon)
+
+    def _stack(self):
+        keys = self.history[0].keys()
+        return {k: np.stack([o[k] for o in self.history], axis=0) for k in keys}
+
+    def reset(self, **kwargs):
+        obs, info = self.env.reset(**kwargs)
+        self.history.clear()
+        for _ in range(self.horizon):
+            self.history.append(obs)          # duplicate first obs to fill window
+        return self._stack(), info
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        self.history.append(obs)               # oldest auto-dropped (maxlen)
+        return self._stack(), reward, terminated, truncated, info
 
 
 class RelativeFrameEval(scalar_first_modified_wrappers.RelativeFrame):
@@ -148,6 +181,9 @@ def make_eval_env(env_name, render_mode="rgb_array"):
     env = RelativeFrameEval(env, include_relative_pose=True)  # obs base->relative, action EE->base
     env = scalar_first_modified_wrappers.Quat2EulerWrapper(env)                              # tcp_pose quat->euler (6D)
     env = scalar_first_modified_wrappers.SERLObsWrapper(env, proprio_keys=PROPRIO_KEYS)      # sorted flatten -> {"state": (13,)}
-    env = StateArrayWrapper(env)                              # -> (13,) array for FQL
+    # this is just for proprio
+    # env = StateArrayWrapper(env)                              # -> (13,) array for FQL
+    # image + proprio
+    env = HistoryWrapper(env, horizon=2)
     return env
 
