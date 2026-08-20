@@ -1,0 +1,18 @@
+jax==0.4.20
+jaxlib==0.4.20        # or jax[cuda12_pip]==0.4.20 for GPU — but pin jaxlib explicitly either way and verify after install
+flax==0.8.4
+optax==0.2.2
+distrax>=0.1.5
+orbax-checkpoint==0.4.4
+scipy==1.11.4
+numpy==1.26.4
+ml_collections
+matplotlib
+moviepy
+wandb
+gymnasium==0.29.1
+robosuite==1.5.1
+mujoco==3.6.0
+opencv-python
+scikit-learn
+einops

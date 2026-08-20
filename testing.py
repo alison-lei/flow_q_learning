@@ -7,21 +7,25 @@ from octo.model.octo_model import OctoModel
 from scipy.spatial.transform import Rotation as R
 from envs.robomimic_utils import make_eval_env
 
-with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
+
+with open('robomimic_datasets/final_20_demos_scripted_2026-08-20_12-58-12-186961.pkl', 'rb') as f:
     data = pickle.load(f)
 
 # octo_model = OctoModel.load_pretrained("hf://rail-berkeley/octo-small")
 # tasks = octo_model.create_tasks(texts=["pick up the red block"])
 
 def add_embeddings(observation):
-    octo_obs = {
-        "image_primary": observation["side_policy_256"][np.newaxis, ...],
-        "image_wrist": observation["wrist_1"][np.newaxis, ...],
-    }
+    image_primary = observation["side_policy_256"][np.newaxis, ...]
+    image_wrist = observation["wrist_1"][np.newaxis, ...]
     timestep_pad_mask = np.array([[True, True]])
-    transformer_outputs = octo_model.run_transformer(octo_obs, tasks, timestep_pad_mask, train=False)
-    action_embeddings = transformer_outputs["readout_action"].tokens.mean(axis=-2)  # (1, 2, embed_dim)
-    action_embeddings = action_embeddings[:, -1, :]                                  # (1, embed_dim)
+    octo_obs = {
+        "image_primary": image_primary,
+        "image_wrist": image_wrist,
+        "timestep_pad_mask": timestep_pad_mask
+    }
+
+    transformer_outputs = octo_model.sample_transformer(octo_obs, tasks, train=False)
+    action_embeddings = transformer_outputs[:, -1, :]                                  # (1, embed_dim)
     observation = dict(observation)
     observation["embeddings"] = action_embeddings[0]
     return observation
@@ -42,17 +46,24 @@ def add_embeddings(observation):
 # print("state:", state)
 
 first_transition = data[0]   # first step of a trajectory
-reset_pose = first_transition["reset_pose"]
+print(first_transition)
+print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
+    data = pickle.load(f)
 
-env = make_eval_env("robomimic-lift")
-obs, info = env.reset(options={"reset_pose": reset_pose, "retry_from_same_state": True})
+print(data[0])
 
-live_state = obs["state"]
-stored_state = first_transition["observations"]["state"]
+# reset_pose = first_transition["reset_pose"]
 
-print("live: ", live_state)
-print("stored:", stored_state)
-print("match:", np.allclose(live_state, stored_state, atol=1e-3))
+# env = make_eval_env("robomimic-lift")
+# obs, info = env.reset(options={"reset_pose": reset_pose, "retry_from_same_state": True})
+
+# live_state = obs["state"]
+# stored_state = first_transition["observations"]["state"]
+
+# print("live: ", live_state)
+# print("stored:", stored_state)
+# print("match:", np.allclose(live_state, stored_state, atol=1e-3))
 # candidates = [
 #     "hf://rail-berkeley/octo-small", // this
 #     "hf://rail-berkeley/octo-small-1.5",

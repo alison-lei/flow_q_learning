@@ -8,23 +8,25 @@ from tqdm import trange
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from moviepy import ImageSequenceClip
-
+from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
+# from moviepy import ImageSequenceClip
 
 def run_single_episode_video(agent, env, octo_model, tasks, out_path="eval_rollout.mp4", fps=10, temperature=0):
     """Run one episode, save an mp4 with the rendered frame next to a
     live Q-value plot. Returns (success, episode_length, q_values)."""
 
     def add_embeddings(observation):
-        octo_obs = {
-            "image_primary": observation["side_policy_256"][np.newaxis, ...],
-            "image_wrist": observation["wrist_1"][np.newaxis, ...],
-        }
+        image_primary = observation["side_policy_256"][np.newaxis, ...]
+        image_wrist = observation["wrist_1"][np.newaxis, ...]
         timestep_pad_mask = np.array([[True, True]])
-
-        transformer_outputs = octo_model.run_transformer(octo_obs, tasks, timestep_pad_mask, train=False)
-        action_embeddings = transformer_outputs["readout_action"].tokens.mean(axis=-2)  # (1, 2, embed_dim)
-        action_embeddings = action_embeddings[:, -1, :]                                  # (1, embed_dim)
+        octo_obs = {
+            "image_primary": image_primary,
+            "image_wrist": image_wrist,
+            "timestep_pad_mask": timestep_pad_mask
+        }
+    
+        transformer_outputs = octo_model.sample_transformer(octo_obs, tasks, train=False)
+        action_embeddings = transformer_outputs[:, -1, :]                                  # (1, embed_dim)
 
         observation = dict(observation)
         observation["embeddings"] = action_embeddings[0]
@@ -216,15 +218,17 @@ def evaluate(agent, env, octo_model, tasks, config=None, num_eval_episodes=50,
     renders = []
 
     def add_embeddings(observation):
-        octo_obs = {
-            "image_primary": observation["side_policy_256"][np.newaxis, ...],
-            "image_wrist": observation["wrist_1"][np.newaxis, ...],
-        }
+        image_primary = observation["side_policy_256"][np.newaxis, ...]
+        image_wrist = observation["wrist_1"][np.newaxis, ...]
         timestep_pad_mask = np.array([[True, True]])
+        octo_obs = {
+            "image_primary": image_primary,
+            "image_wrist": image_wrist,
+            "timestep_pad_mask": timestep_pad_mask
+        }
     
-        transformer_outputs = octo_model.run_transformer(octo_obs, tasks, timestep_pad_mask, train=False)
-        action_embeddings = transformer_outputs["readout_action"].tokens.mean(axis=-2)  # (1, 2, embed_dim)
-        action_embeddings = action_embeddings[:, -1, :]                                  # (1, embed_dim)
+        transformer_outputs = octo_model.sample_transformer(octo_obs, tasks, train=False)
+        action_embeddings = transformer_outputs[:, -1, :]                                  # (1, embed_dim)
     
         observation = dict(observation)
         observation["embeddings"] = action_embeddings[0]

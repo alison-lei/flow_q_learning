@@ -21,7 +21,7 @@ from utils.evaluation import evaluate, flatten
 from utils.flax_utils import restore_agent, save_agent
 from utils.log_utils import CsvLogger, get_exp_name, get_flag_dict, get_wandb_video, setup_wandb
 
-from octo.model.octo_model import OctoModel   # <- moved up, used by both the debug path and periodic eval
+from octo.model.octo_model import OctoModel
 
 FLAGS = flags.FLAGS
 
@@ -227,6 +227,8 @@ def main(_):
 
 if __name__ == '__main__':
     app.run(main)
+
+
 
 # just using state data
 # import os
