@@ -6,6 +6,7 @@ class LiftEnvConfig(DefaultRobosuiteConfig):
     MAX_EPISODE_LENGTH: int = 70
     RANDOM_RESET: bool = True
     INITIAL_GRIPPER_OPEN: bool = True
+    
 
     TABLE_X = 0.56 #in base frame
     Z_OFFSET = 0.912 # robot base z position in world frame 

@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 # from moviepy import ImageSequenceClip
 
-def run_single_episode_video(agent, env, octo_model, tasks, out_path="eval_rollout.mp4", fps=10, temperature=0):
+def run_single_episode_video(agent, env, octo_model, tasks, out_path="eval_rollout.mp4", fps=10, temperature=0, seed=None):
     """Run one episode, save an mp4 with the rendered frame next to a
     live Q-value plot. Returns (success, episode_length, q_values)."""
 
@@ -33,7 +33,13 @@ def run_single_episode_video(agent, env, octo_model, tasks, out_path="eval_rollo
         return observation
 
     rng = jax.random.PRNGKey(np.random.randint(0, 2**32))
+    
+    if seed is not None:
+        base_env = env.unwrapped
+        cube_seed = np.random.default_rng(seed)
+        base_env._env.rng.bit_generator.state = cube_seed.bit_generator.state
     observation, info = env.reset()
+    
     observation = add_embeddings(observation)
     done = False
     frames, q_values = [], []
@@ -210,7 +216,7 @@ def add_to(dict_of_lists, single_dict):
 
 # images + proprio
 def evaluate(agent, env, octo_model, tasks, config=None, num_eval_episodes=50,
-             num_video_episodes=5, video_frame_skip=1, eval_temperature=0):
+             num_video_episodes=5, video_frame_skip=1, eval_temperature=0, seed=None):
 
     actor_fn = supply_rng(agent.sample_actions, rng=jax.random.PRNGKey(np.random.randint(0, 2**32)))
     trajs = []
@@ -239,7 +245,14 @@ def evaluate(agent, env, octo_model, tasks, config=None, num_eval_episodes=50,
         traj = defaultdict(list)
         should_render = i >= num_eval_episodes
 
+        # base_env still references the same env obejct
+        # by mutating base_env._env.rng, change RNG that PandaLiftGymEnv uses
+        if seed is not None:
+            base_env = env.unwrapped
+            cube_seed = np.random.default_rng(seed + i)
+            base_env._env.rng.bit_generator.state = cube_seed.bit_generator.state
         observation, info = env.reset()
+
         observation = add_embeddings(observation)          # <- run through Octo before the loop starts
         done = False
         step = 0

@@ -2,17 +2,19 @@ import robosuite
 import numpy as np
 import pickle
 import itertools
+import matplotlib.pyplot as plt
 from utils.datasets import Dataset
 from octo.model.octo_model import OctoModel
 from scipy.spatial.transform import Rotation as R
 from envs.robomimic_utils import make_eval_env
 
 
-with open('robomimic_datasets/final_20_demos_scripted_2026-08-20_12-58-12-186961.pkl', 'rb') as f:
+with open('robomimic_datasets/gripOpenFalse_20_demos.pkl', 'rb') as f:
     data = pickle.load(f)
-
-# octo_model = OctoModel.load_pretrained("hf://rail-berkeley/octo-small")
-# tasks = octo_model.create_tasks(texts=["pick up the red block"])
+episode_lengths = []
+counter = 0
+octo_model = OctoModel.load_pretrained("hf://rail-berkeley/octo-small")
+tasks = octo_model.create_tasks(texts=["pick up the red block"])
 
 def add_embeddings(observation):
     image_primary = observation["side_policy_256"][np.newaxis, ...]
@@ -28,7 +30,20 @@ def add_embeddings(observation):
     action_embeddings = transformer_outputs[:, -1, :]                                  # (1, embed_dim)
     observation = dict(observation)
     observation["embeddings"] = action_embeddings[0]
-    return observation
+    return action_embeddings[0]
+
+def add_embeddings_6(observation):
+    octo_obs = {
+        "image_primary": observation["side_policy_256"][np.newaxis, ...],
+        "image_wrist": observation["wrist_1"][np.newaxis, ...],
+    }
+    timestep_pad_mask = np.array([[True, True]])
+    transformer_outputs = octo_model.run_transformer(octo_obs, tasks, timestep_pad_mask, train=False)
+    action_embeddings = transformer_outputs["readout_action"].tokens.mean(axis=-2)  # (1, 2, embed_dim)
+    action_embeddings = action_embeddings[:, -1, :]                                  # (1, embed_dim)
+    observation = dict(observation)
+    observation["embeddings"] = action_embeddings[0]
+    return action_embeddings[0]
 
 
 # training_transition = data[0]
@@ -45,13 +60,66 @@ def add_embeddings(observation):
 
 # print("state:", state)
 
+# print(len(data))
 first_transition = data[0]   # first step of a trajectory
 print(first_transition)
-print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
-    data = pickle.load(f)
 
-print(data[0])
+# for i in range(466):
+#     counter += 1
+#     if data[i]["infos"]["succeed"] == 1:
+#         episode_lengths.append(counter)
+#         counter = 0
+
+# print(episode_lengths)
+
+
+import jax
+# load first transition
+d = pickle.load(open("robomimic_datasets/gripOpenFalse_20_demos.pkl","rb"))[0]  # adjust indexing
+stored = np.asarray(d["embeddings"])              # 512-dim, baked in at collection
+imgs   = d["observations"]                          # side_policy_256 + wrist_1, window=2
+
+# recompute from the SAME images using your CURRENT env's octo path
+recomputed = add_embeddings_6(imgs)             # exact call eval uses
+recomputed = np.asarray(jax.device_get(recomputed)).ravel()
+s = stored.ravel()
+print("cosine:", np.dot(s,recomputed)/(np.linalg.norm(s)*np.linalg.norm(recomputed)))
+print("max|Δ|:", np.abs(s-recomputed).max())
+
+def cosine(a, b):
+    a, b = np.asarray(a).ravel(), np.asarray(b).ravel()
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    return float(np.dot(a, b) / denom) if denom else np.nan
+
+def load(p):
+    d = pickle.load(open(p, "rb"))
+    return [t for ep in d for t in ep] if isinstance(d[0], list) else d
+
+a = load("robomimic_datasets/gripOpenFalse_noLR_mujoco3_20_demos.pkl")
+b = load("robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl")
+
+# for idx in [183, 303, 282, 208, 424]:
+#     fig, ax = plt.subplots(1, 2, figsize=(8, 4))
+#     ax[0].imshow(a[idx]["observations"]["side_policy_256"][0]); ax[0].set_title(f"A idx {idx}")
+#     ax[1].imshow(b[idx]["observations"]["side_policy_256"][0]); ax[1].set_title(f"B idx {idx}")
+#     plt.savefig(f"compare_{idx}.png"); plt.close()
+
+img = b[181]["observations"]  # same as b[181]'s image, confirmed identical
+current_emb = add_embeddings(img)
+
+print("current vs A stored:", cosine(current_emb, a[181]["embeddings"]))
+print("current vs B stored:", cosine(current_emb, b[181]["embeddings"]))
+print("A gripper_pose:", a[181]["infos"]["original_state_obs"]["gripper_pose"])
+print("B gripper_pose:", b[181]["infos"]["original_state_obs"]["gripper_pose"])
+
+diff = np.abs(a[181]["observations"]["side_policy_256"].astype(int)
+             - b[181]["observations"]["side_policy_256"].astype(int)).sum(axis=-1)
+plt.imshow(diff[0]); plt.colorbar(); plt.savefig("diffmap_wrist_frame0.png"); plt.close()
+plt.imshow(diff[1]); plt.colorbar(); plt.savefig("diffmap_wrist_frame1.png"); plt.close()# print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+# with open('robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl', 'rb') as f:
+#     data = pickle.load(f)
+
+# print(data[0])
 
 # reset_pose = first_transition["reset_pose"]
 

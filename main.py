@@ -27,6 +27,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('run_group', 'Debug', 'Run group.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
+flags.DEFINE_integer('eval_seed', 345, 'seed used for evaluation')
 flags.DEFINE_string('env_name', 'robomimic-lift', 'Environment (dataset) name.')
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
@@ -116,7 +117,7 @@ def main(_):
         from utils.evaluation import run_single_episode_video
         success, length, q_values = run_single_episode_video(
             agent=agent, env=eval_env, octo_model=octo_model, tasks=tasks,
-            out_path=os.path.join(FLAGS.save_dir, f"epoch{FLAGS.restore_epoch}.mp4"),
+            out_path=os.path.join(FLAGS.save_dir, f"epoch{FLAGS.restore_epoch}.mp4", seed=FLAGS.eval_seed),
         )
         print(f"success={success}, length={length}")
         return
@@ -205,6 +206,7 @@ def main(_):
                 num_eval_episodes=FLAGS.eval_episodes,
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
+                seed=FLAGS.eval_seed,
             )
 
             renders.extend(cur_renders)
