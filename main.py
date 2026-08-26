@@ -27,7 +27,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('run_group', 'Debug', 'Run group.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
-flags.DEFINE_integer('eval_seed', 345, 'seed used for evaluation')
+flags.DEFINE_integer('eval_seed', None, 'seed used for evaluation')
 flags.DEFINE_string('env_name', 'robomimic-lift', 'Environment (dataset) name.')
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
@@ -72,6 +72,10 @@ def main(_):
     if FLAGS.online_steps > 0:
         assert 'visual' not in FLAGS.env_name, 'Online fine-tuning is currently not supported for visual environments.'
 
+    if FLAGS.online_steps == 0 and env is not None:
+        env.close()
+        env = None
+
     # Load Octo once -- used for both the standalone debug eval below and the
     # periodic in-training eval later in the loop.
     octo_model = OctoModel.load_pretrained("hf://rail-berkeley/octo-small")
@@ -110,17 +114,35 @@ def main(_):
         config,
     )
 
-    # Standalone single-episode debug eval: `python main.py --restore_path=... --restore_epoch=...`
+    # Standalone single-episode debug eval: `CUDA_VISIBLE_DEVICES=1 MUJOCO_GL=egl python main.py --restore_path=exp/image_proprio/Debug/sd000_20260821_131218 --restore_epoch=200000 --eval_seed=345`
     if FLAGS.restore_path is not None:
         agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
-        
+        have_success = have_failure = False
+        out_dir = "q_check/epoch{}".format(FLAGS.restore_epoch)
+        os.makedirs(out_dir, exist_ok=True)
+        ep_out = "q_check/epoch{}/tmp.mp4".format(FLAGS.restore_epoch)
+
         from utils.evaluation import run_single_episode_video
-        success, length, q_values = run_single_episode_video(
-            agent=agent, env=eval_env, octo_model=octo_model, tasks=tasks,
-            out_path=os.path.join(FLAGS.save_dir, f"epoch{FLAGS.restore_epoch}.mp4", seed=FLAGS.eval_seed),
-        )
+        while have_success == False or have_failure == False:
+            success, length, q_values = run_single_episode_video(
+                agent=agent, env=eval_env, octo_model=octo_model, tasks=tasks,
+                out_path=ep_out,
+            )
+            if success:
+                have_success = True
+                os.rename(ep_out, f"{out_dir}/success.mp4")
+            else:
+                have_failure = True
+                os.rename(ep_out, f"{out_dir}/failure.mp4")
+
+        eval_env.close()
         print(f"success={success}, length={length}")
+        wandb.finish()
         return
+
+    if FLAGS.restore_path is None and eval_env is not None:
+        eval_env.close()
+        eval_env = None
 
     # Train agent.
     train_logger = CsvLogger(os.path.join(FLAGS.save_dir, 'train.csv'))
@@ -196,17 +218,18 @@ def main(_):
         if FLAGS.eval_interval != 0 and (i == 1 or i % FLAGS.eval_interval == 0):
             renders = []
             eval_metrics = {}
+            # now it will be the same 30 episdoes, starting with same reset position for all evaluation
+            _, eval_env, _, _ = make_env_and_datasets(FLAGS.env_name, frame_stack=FLAGS.frame_stack)
 
             eval_info, trajs, cur_renders = evaluate(
                 agent=agent,
                 env=eval_env,
-                octo_model=octo_model,   # <- now threaded through
-                tasks=tasks,             # <- now threaded through
+                octo_model=octo_model,
+                tasks=tasks,
                 config=config,
                 num_eval_episodes=FLAGS.eval_episodes,
                 num_video_episodes=FLAGS.video_episodes,
                 video_frame_skip=FLAGS.video_frame_skip,
-                seed=FLAGS.eval_seed,
             )
 
             renders.extend(cur_renders)
@@ -218,6 +241,8 @@ def main(_):
                 eval_metrics['video'] = video
             wandb.log(eval_metrics, step=i)
             eval_logger.log(eval_metrics, step=i)
+
+            eval_env.close() # frees up the mujoco sim for next 20000 steps of training
 
         # Save agent.
         if i % FLAGS.save_interval == 0:

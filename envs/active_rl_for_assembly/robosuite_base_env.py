@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Literal, Tuple
 
+from absl import flags
 import cv2
 import gymnasium as gym
 from gymnasium import spaces
@@ -37,6 +38,8 @@ macros.IMAGE_CONVENTION = "opencv" # to get images in opencv format (not flipped
 # from robosuite.utils.ik_utils import IKSolver
 import mink
 from envs.active_rl_for_assembly.converge_ik import converge_ik
+
+FLAGS = flags.FLAGS
 
 def print_green(x):
     return print("\033[92m {}\033[00m".format(x))
@@ -116,7 +119,7 @@ class RobosuiteBaseEnv(gym.Env):
             ignore_done=False,
             hard_reset=False,
             renderer=config.RENDERER,
-            seed=config.SEED,
+            seed = config.SEED if FLAGS.eval_seed == None else FLAGS.eval_seed,
             # initialization_noise={
             #     "type": "gaussian",      # or "uniform"
             #     "magnitude": 0,       # scale factor
