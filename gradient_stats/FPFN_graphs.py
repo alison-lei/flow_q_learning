@@ -4,7 +4,9 @@ import pandas as pd
 import csv
 
 win_sz = [5, 10, 20]
-ckpts = [40000, 80000, 120000, 160000, 200000]
+# ckpts = [40000, 80000, 120000, 160000, 200000]
+ckpts = [200000]
+
 
 FPwinsz5 = []
 FPwinsz10 = []
@@ -25,7 +27,7 @@ for ckpt in ckpts:
     FN20 = 0
 
     for window_size in win_sz:
-        file_path = f"gradient_stats/{ckpt}/winsz={window_size}.csv"
+        file_path = f"episode_results_winsz={window_size}.csv"
         with open(file_path, "r") as f:
             reader = csv.reader(f)
             next(reader)
@@ -70,7 +72,7 @@ plt.ylabel('FP Count')
 plt.title('False Positives by Checkpoint and Window Size')
 plt.legend(title='Window Size')
 plt.tight_layout()
-plt.savefig("FP_count_ckpts.png")
+plt.savefig("octo_FP_count_ckpts.png")
 
 df = pd.DataFrame({
     'Checkpoint': ckpts,
@@ -90,4 +92,4 @@ plt.ylabel('FN Count')
 plt.title('False Negatives by Checkpoint and Window Size')
 plt.legend(title='Window Size')
 plt.tight_layout()
-plt.savefig("FN_count_ckpts.png")
+plt.savefig("octo_FN_count_ckpts.png")
