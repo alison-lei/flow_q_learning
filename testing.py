@@ -75,7 +75,7 @@ print(first_transition)
 
 import jax
 # load first transition
-d = pickle.load(open("robomimic_datasets/gripOpenFalse_20_demos.pkl","rb"))[0]  # adjust indexing
+d = pickle.load(open("robomimic_datasets/nut_gripOpenFalse_noLR_mujoco3_30_demos.pkl","rb"))[0]  # adjust indexing
 stored = np.asarray(d["embeddings"])              # 512-dim, baked in at collection
 imgs   = d["observations"]                          # side_policy_256 + wrist_1, window=2
 
@@ -95,7 +95,7 @@ def load(p):
     d = pickle.load(open(p, "rb"))
     return [t for ep in d for t in ep] if isinstance(d[0], list) else d
 
-a = load("robomimic_datasets/gripOpenFalse_noLR_mujoco3_20_demos.pkl")
+a = load("robomimic_datasets/nut_gripOpenFalse_noLR_mujoco3_30_demos.pkl")
 b = load("robomimic_datasets/lift_20_demos_scripted_2026-05-11_15-23-51-466619_CORL.pkl")
 
 # for idx in [183, 303, 282, 208, 424]:

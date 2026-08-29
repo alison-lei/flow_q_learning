@@ -28,7 +28,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('run_group', 'Debug', 'Run group.')
 flags.DEFINE_integer('seed', 0, 'Random seed.')
 flags.DEFINE_integer('eval_seed', None, 'seed used for evaluation')
-flags.DEFINE_string('env_name', 'robomimic-lift', 'Environment (dataset) name.')
+# flags.DEFINE_string('env_name', 'robomimic-lift', 'Environment (dataset) name.')
+flags.DEFINE_string('env_name', 'nut_assembly_square', 'Environment (dataset) name.')
+
 flags.DEFINE_string('save_dir', 'exp/', 'Save directory.')
 flags.DEFINE_string('restore_path', None, 'Restore path.')
 flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
@@ -50,13 +52,15 @@ flags.DEFINE_integer('balanced_sampling', 0, 'Whether to use balanced sampling f
 
 config_flags.DEFINE_config_file('agent', 'agents/fql.py', lock_config=False)
 
-TASK_DESC = "pick up the red block"   # <- confirmed exact string from data collection
+# TASK_DESC = "pick up the red block" # for lift
+TASK_DESC = "pick up the brown square nut and insert it onto the square peg" # nut assembly square
+
 
 
 def main(_):
     # Set up logger.
     exp_name = get_exp_name(FLAGS.seed)
-    setup_wandb(project='image_proprio', group=FLAGS.run_group,
+    setup_wandb(project='nut', group=FLAGS.run_group,
     name=exp_name)
     FLAGS.save_dir = os.path.join(FLAGS.save_dir, wandb.run.project, FLAGS.run_group, exp_name)
     os.makedirs(FLAGS.save_dir, exist_ok=True)

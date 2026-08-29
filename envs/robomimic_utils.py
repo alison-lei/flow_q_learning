@@ -8,6 +8,9 @@ from scipy.spatial.transform import Rotation as R
 # from envs.active_rl_for_assembly.wrappers import Quat2EulerWrapper
 from envs.active_rl_for_assembly import scalar_first_modified_wrappers
 
+from envs.active_rl_for_assembly.nut_assembly_square import PandaNutAssemblySquareGymEnv
+from envs.active_rl_for_assembly.nut_assembly_square_env_cfg import NutAssemblySquareEnvConfig
+
 # just proprioception
 # def lift_dataset(path: str) -> dict:
 #     with open(path, "rb") as f:
@@ -174,11 +177,18 @@ class RelativeFrameEval(scalar_first_modified_wrappers.RelativeFrame):
         return transformed_obs, reward, done, truncated, info
         
 
+_RESET_EULER = NutAssemblySquareEnvConfig.RESET_POSE
+RESET_POSE_QUAT = np.concatenate(
+    [_RESET_EULER[:3], R.from_euler("xyz", _RESET_EULER[3:]).as_quat()]
+)
+
 def make_eval_env(env_name, render_mode="rgb_array"):
-    if env_name != "robomimic-lift":
-        return
-    env = PandaLiftGymEnv(config=LiftEnvConfig, render_mode=render_mode, privileged_obs=True)
-    env = RelativeFrameEval(env, include_relative_pose=True)  # obs base->relative, action EE->base
+    if env_name == "robomimic-lift":
+        env = PandaLiftGymEnv(config=LiftEnvConfig, render_mode=render_mode, privileged_obs=True)
+        env = RelativeFrameEval(env, include_relative_pose=True)
+    elif env_name == "nut_assembly_square":
+        env = PandaNutAssemblySquareGymEnv(config=NutAssemblySquareEnvConfig, render_mode=render_mode, privileged_obs=True)
+        env = RelativeFrameEval(env, include_relative_pose=True, reference_pose=RESET_POSE_QUAT)
     env = scalar_first_modified_wrappers.Quat2EulerWrapper(env)                              # tcp_pose quat->euler (6D)
     env = scalar_first_modified_wrappers.SERLObsWrapper(env, proprio_keys=PROPRIO_KEYS)      # sorted flatten -> {"state": (13,)}
     # this is just for proprio
