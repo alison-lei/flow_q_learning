@@ -688,6 +688,17 @@ class PandaNutAssemblySquareGymEnv(RobosuiteBaseEnv):
             self._wrist_at_limit_steps = {j: 0 for j in self.WRIST_JOINT_INDICES}
         return obs, reward, done, truncated, info
 
+    def render(self):
+        if self.render_mode == "rgb_array":
+            cam = self.config.RENDER_CAMERA[0]
+            w, h = self.config.RENDER_CAMERA_SIZE
+            # MUJOCO's offscreen renderer
+            frame = self._env.sim.render(
+                width=w, height=h, camera_name=cam
+                )
+            return frame[::-1] # flip upright
+        elif self.render_mode == "human":
+            self._env.render()
 
 class PandaNutAssemblySquareGymEnvRG(PandaNutAssemblySquareGymEnv):
     def step(self, action_dict: dict):
