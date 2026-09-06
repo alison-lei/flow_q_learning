@@ -18,6 +18,8 @@ Usage:
         --window_size=20 \
         --threshold=0.0 \
         --episodes_csv=/path/to/episode_results.csv
+
+    # python gradient_stats/gradient_calc.py --csv_path=20000_nut_videos/20000/eval_log_20000.csv --video_dir=20000_nut_videos/20000 --episodes_csv=gradient_stats
 """
 
 import csv
@@ -53,8 +55,8 @@ flags.DEFINE_string(
 )
 flags.mark_flag_as_required('csv_path')
 
-winsz = [5, 10, 20]
-
+# winsz = [5, 10, 20]
+winsz = [10, 20, 30]
 
 def load_episodes_from_csv(csv_path):
     """Read an eval_single_checkpoint.py-style CSV into the same list-of-dicts
@@ -253,7 +255,7 @@ def main(argv):
             win,
             FLAGS.threshold,
             video_dir=FLAGS.video_dir,
-            episodes_csv=f"{FLAGS.episodes_csv}winsz={win}.csv" if FLAGS.episodes_csv else None,
+            episodes_csv=f"{FLAGS.episodes_csv}/nut_20000_winsz={win}.csv" if FLAGS.episodes_csv else None,
         )
 
 

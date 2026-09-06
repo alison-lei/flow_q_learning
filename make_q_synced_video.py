@@ -214,7 +214,7 @@ def main(_):
     combined = build_combined_video(frames, q_values, success)
 
     out_fps = FLAGS.fps if FLAGS.fps is not None else src_fps
-    out_path = os.path.join(FLAGS.out_dir, f"octo_q_synced_ep{FLAGS.episode:05d}.mp4")
+    out_path = os.path.join(FLAGS.out_dir, f"nut_q_synced_ep{FLAGS.episode:05d}.mp4")
     writer = imageio.get_writer(out_path, fps=out_fps, macro_block_size=1)
     for f in combined:
         writer.append_data(f)

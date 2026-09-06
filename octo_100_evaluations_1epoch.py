@@ -51,18 +51,19 @@ flags.DEFINE_integer("frame_stack", None, "Number of frames to stack.")
 flags.DEFINE_integer("eval_episodes", 100, "Number of episodes to evaluate.")
 flags.DEFINE_integer("video_episodes", 100,
                      "Of the eval episodes, how many (the first N) to also render to mp4.")
-flags.DEFINE_string("video_root", "200000_octo_videos", "Root folder for videos + CSV.")
+flags.DEFINE_string("video_root", "60000_nut_videos", "Root folder for videos + CSV.")
 flags.DEFINE_integer("video_fps", 10, "FPS for saved videos (match CONTROL_FREQ).")
 
 flags.DEFINE_string("run_group", "single_ckpt_eval", "wandb run group.")
-flags.DEFINE_string("wandb_project", "image_proprio", "wandb project.")
+flags.DEFINE_string("wandb_project", "nut", "wandb project.")
 
 config_flags.DEFINE_config_file("agent", "agents/fql.py", lock_config=False)
 
 flags.mark_flag_as_required("restore_path")
 flags.mark_flag_as_required("restore_epoch")
 
-TASK_DESC = "pick up the red block"   # <- confirmed exact string from data collection
+# TASK_DESC = "pick up the red block"   # <- confirmed exact string from data collection
+TASK_DESC = "pick up the brown square nut and insert it onto the square peg" # nut assembly square
 OCTO_PATH = "hf://rail-berkeley/octo-small"
 
 

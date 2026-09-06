@@ -106,7 +106,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         val_dataset = None
         env = None
         eval_env = robomimic_utils.make_eval_env("robomimic-lift")
-    if "nut_assembly_square" in env_name:
+    elif "nut_assembly_square" in env_name:
         train_dataset = robomimic_utils.lift_dataset("robomimic_datasets/nut_gripOpenFalse_noLR_mujoco3_30_demos.pkl")
         val_dataset = None
         env = None
@@ -140,7 +140,7 @@ def make_env_and_datasets(env_name, frame_stack=None, action_clip_eps=1e-5):
         dataset = d4rl_utils.get_dataset(env, env_name)
         train_dataset, val_dataset = dataset, None
     else:
-        raise ValueError(f'Unsupported environment: {env_name}')
+        raise ValueError(f"Unsupported environment: {env_name}")
 
     if frame_stack is not None and env is not None and eval_env is not None:
         env = FrameStackWrapper(env, frame_stack)
