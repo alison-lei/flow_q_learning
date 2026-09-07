@@ -52,6 +52,10 @@ flags.DEFINE_integer('balanced_sampling', 0, 'Whether to use balanced sampling f
 
 config_flags.DEFINE_config_file('agent', 'agents/fql.py', lock_config=False)
 
+flags.DEFINE_boolean('debug_eval', False,
+                      'If True, restore the agent and render one debug episode, then exit '
+                      '(does not run offline/online training).')
+
 # TASK_DESC = "pick up the red block" # for lift
 TASK_DESC = "pick up the brown square nut and insert it onto the square peg" # nut assembly square
 
@@ -158,15 +162,20 @@ def main(_):
         config,
     )
 
-    # Standalone single-episode debug eval: `CUDA_VISIBLE_DEVICES=1 MUJOCO_GL=egl python main.py --restore_path=exp/image_proprio/Debug/sd000_20260821_131218 --restore_epoch=200000 --eval_seed=345`
+    # Restore agent if requested -- used both for the standalone debug-eval path
+    # below and for resuming/fine-tuning an already-trained checkpoint.
     if FLAGS.restore_path is not None:
         agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
+        
+        
+    # Standalone single-episode debug eval: `CUDA_VISIBLE_DEVICES=1 MUJOCO_GL=egl python main.py --restore_path=exp/.../sd000_.../ --restore_epoch=300000 --eval_seed=345 --debug_eval=True`
+    if FLAGS.debug_eval:
+        assert FLAGS.restore_path is not None, "debug_eval requires --restore_path."
+        from utils.evaluation import run_single_episode_video
         # have_success = have_failure = False
         # out_dir = "q_check/epoch{}".format(FLAGS.restore_epoch)
         # os.makedirs(out_dir, exist_ok=True)
         # ep_out = "q_check/epoch{}/tmp.mp4".format(FLAGS.restore_epoch)
-
-        from utils.evaluation import run_single_episode_video
         # while have_success == False or have_failure == False:
         #     success, length, q_values = run_single_episode_video(
         #         agent=agent, env=env, octo_model=octo_model, tasks=tasks,
@@ -178,6 +187,7 @@ def main(_):
         #     else:
         #         have_failure = True
         #         os.rename(ep_out, f"{out_dir}/failure.mp4")
+        
         success, length, q_values = run_single_episode_video(
             agent=agent, env=env, octo_model=octo_model, tasks=tasks,
             out_path="epoch{}_my_nut_video.mp4".format(FLAGS.restore_epoch),
