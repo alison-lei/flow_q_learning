@@ -60,24 +60,35 @@ class FQLAgent(flax.struct.PyTreeNode):
         }
         # this critic q value is for updating the params of BC policy
 
-    def actor_loss(self, batch, grad_params, rng):
+    # CHANGED: added `demo_batch`. The BC-flow regression (bc_flow_loss) directly
+    # imitates whatever actions it's given, so it must only ever see trusted
+    # demo actions -- letting it see online/exploratory actions (e.g. during
+    # online fine-tuning with a mixed or replay-only batch) is what caused the
+    # actor to collapse into imitating its own bad rollouts. `batch` (which may
+    # be demo-only, mixed, or replay-only depending on the caller) is still used
+    # for distillation observations and the Q-maximization term, since neither
+    # of those regresses toward recorded actions and both benefit from broader
+    # state coverage.
+    def actor_loss(self, batch, demo_batch, grad_params, rng):
         """Compute the FQL actor loss."""
-        batch_size, action_dim = batch['actions'].shape
+        demo_batch_size, action_dim = demo_batch['actions'].shape
         rng, x_rng, t_rng = jax.random.split(rng, 3)
 
-        # BC flow loss.
-        x_0 = jax.random.normal(x_rng, (batch_size, action_dim))
+        # BC flow loss. CHANGED: sampled from demo_batch, not batch.
+        x_0 = jax.random.normal(x_rng, (demo_batch_size, action_dim))
         # the real actions from the dataset
-        x_1 = batch['actions']
-        t = jax.random.uniform(t_rng, (batch_size, 1))
+        x_1 = demo_batch['actions']
+        t = jax.random.uniform(t_rng, (demo_batch_size, 1))
         x_t = (1 - t) * x_0 + t * x_1
         vel = x_1 - x_0
 
         # runs the BC flow network given the observation and the noisy action x_t
-        pred = self.network.select('actor_bc_flow')(batch['observations'], x_t, t, params=grad_params)
+        pred = self.network.select('actor_bc_flow')(demo_batch['observations'], x_t, t, params=grad_params)
         bc_flow_loss = jnp.mean((pred - vel) ** 2)
 
-        # Distillation loss.
+        # Distillation loss. Uses batch's observations only (no recorded
+        # actions touched here), so this is unaffected by the demo_batch split.
+        batch_size = batch['actions'].shape[0]
         rng, noise_rng = jax.random.split(rng)
         noises = jax.random.normal(noise_rng, (batch_size, action_dim))
         target_flow_actions = self.compute_flow_actions(batch['observations'], noises=noises)
@@ -121,8 +132,9 @@ class FQLAgent(flax.struct.PyTreeNode):
             'mse': mse,
         }
 
+    # CHANGED: added `demo_batch`, threaded through to actor_loss.
     @jax.jit
-    def total_loss(self, batch, grad_params, rng=None):
+    def total_loss(self, batch, demo_batch, grad_params, rng=None):
         """Compute the total loss."""
         info = {}
         rng = rng if rng is not None else self.rng
@@ -130,11 +142,12 @@ class FQLAgent(flax.struct.PyTreeNode):
         rng, actor_rng, critic_rng = jax.random.split(rng, 3)
 
         # critic_loss is just average difference squared between predicted and actual Q
+        # unchanged: critic still trains on the full `batch` (online data included).
         critic_loss, critic_info = self.critic_loss(batch, grad_params, critic_rng)
         for k, v in critic_info.items():
             info[f'critic/{k}'] = v
 
-        actor_loss, actor_info = self.actor_loss(batch, grad_params, actor_rng)
+        actor_loss, actor_info = self.actor_loss(batch, demo_batch, grad_params, actor_rng)
         for k, v in actor_info.items():
             info[f'actor/{k}'] = v
 
@@ -151,13 +164,14 @@ class FQLAgent(flax.struct.PyTreeNode):
         )
         network.params[f'modules_target_{module_name}'] = new_target_params
 
+    # CHANGED: added `demo_batch`, threaded through to total_loss.
     @jax.jit
-    def update(self, batch):
+    def update(self, batch, demo_batch):
         """Update the agent and return a new agent with information dictionary."""
         new_rng, rng = jax.random.split(self.rng)
 
         def loss_fn(grad_params):
-            return self.total_loss(batch, grad_params, rng=rng)
+            return self.total_loss(batch, demo_batch, grad_params, rng=rng)
 
         new_network, info = self.network.apply_loss_fn(loss_fn=loss_fn)
         self.target_update(new_network, 'critic')

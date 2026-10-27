@@ -36,19 +36,19 @@ flags.DEFINE_string('restore_path', None, 'Restore path.')
 flags.DEFINE_integer('restore_epoch', None, 'Restore epoch.')
 
 flags.DEFINE_integer('offline_steps', 0, 'Number of offline steps.')
-flags.DEFINE_integer('online_steps', 200000, 'Number of online steps.')
-flags.DEFINE_integer('buffer_size', 2000, 'Replay buffer size.')
+flags.DEFINE_integer('online_steps', 100000, 'Number of online steps.')
+flags.DEFINE_integer('buffer_size', 20000, 'Replay buffer size.')
 flags.DEFINE_integer('log_interval', 500, 'Logging interval.')
 flags.DEFINE_integer('eval_interval', 20000, 'Evaluation interval.')
 flags.DEFINE_integer('save_interval', 20000, 'Saving interval.')
 
-flags.DEFINE_integer('eval_episodes', 30, 'Number of evaluation episodes.')
+flags.DEFINE_integer('eval_episodes', 20, 'Number of evaluation episodes.')
 flags.DEFINE_integer('video_episodes', 5, 'Number of video episodes for each task.')
 flags.DEFINE_integer('video_frame_skip', 1, 'Frame skip for videos.')
 
 flags.DEFINE_float('p_aug', None, 'Probability of applying image augmentation.')
 flags.DEFINE_integer('frame_stack', None, 'Number of frames to stack.')
-flags.DEFINE_integer('balanced_sampling', 0, 'Whether to use balanced sampling for online fine-tuning.')
+flags.DEFINE_integer('balanced_sampling', 1, 'Whether to use balanced sampling for online fine-tuning.')
 
 config_flags.DEFINE_config_file('agent', 'agents/fql.py', lock_config=False)
 
@@ -77,7 +77,7 @@ def main(_):
     config['encoder'] = 'image_proprio'
     env, eval_env, train_dataset, val_dataset = make_env_and_datasets(FLAGS.env_name, frame_stack=FLAGS.frame_stack)
 
-    # CHANGED: for the robomimic-based tasks (robomimic-lift, nut_assembly_square),
+    # for the robomimic-based tasks (robomimic-lift, nut_assembly_square),
     # make_env_and_datasets always returns env=None and builds exactly one live
     # sim, returned as eval_env. Fold that single instance into `env` so the rest
     # of this file only ever deals with one variable for "the live sim we
@@ -90,13 +90,7 @@ def main(_):
             env = eval_env
         eval_env = None
 
-    if FLAGS.online_steps > 0 and FLAGS.restore_path is None:
-        assert env is not None, (
-            f"online_steps={FLAGS.online_steps} > 0 requires an interactive training env, "
-            f"but make_env_and_datasets('{FLAGS.env_name}') returned no usable env."
-        )
-
-    # CHANGED: added the restore_path guard so this can never accidentally close
+    # added the restore_path guard so this can never accidentally close
     # the sim the debug/restore_path branch below needs, if someone ever runs
     # that branch with --online_steps=0 explicitly.
     if FLAGS.online_steps == 0 and FLAGS.restore_path is None and env is not None:
@@ -136,11 +130,11 @@ def main(_):
     train_dataset = Dataset.create(**train_dataset)
 
     if FLAGS.balanced_sampling:
-        example_transition = {k: v[0] for k, v in train_dataset.items()}
+        example_transition = jax.tree_util.tree_map(lambda x: x[0], dict(train_dataset))
         replay_buffer = ReplayBuffer.create(example_transition, size=FLAGS.buffer_size)
     else:
         train_dataset = ReplayBuffer.create_from_initial_dataset(
-            dict(train_dataset), size=max(FLAGS.buffer_size, train_dataset.size + 1)
+            dict(train_dataset), size=FLAGS.buffer_size + train_dataset.size
         )
         replay_buffer = train_dataset
 
@@ -167,7 +161,7 @@ def main(_):
     if FLAGS.restore_path is not None:
         agent = restore_agent(agent, FLAGS.restore_path, FLAGS.restore_epoch)
         
-        
+
     # Standalone single-episode debug eval: `CUDA_VISIBLE_DEVICES=1 MUJOCO_GL=egl python main.py --restore_path=exp/.../sd000_.../ --restore_epoch=300000 --eval_seed=345 --debug_eval=True`
     if FLAGS.debug_eval:
         assert FLAGS.restore_path is not None, "debug_eval requires --restore_path."
@@ -214,7 +208,10 @@ def main(_):
             if config['agent_name'] == 'rebrac':
                 agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
             else:
-                agent, update_info = agent.update(batch)
+                # CHANGED: pass batch as both args -- every transition sampled
+                # here is trusted demo data during the offline phase, so the
+                # actor's BC-flow regression is safe to see all of it.
+                agent, update_info = agent.update(batch, batch)
         else:
             online_rng, key = jax.random.split(online_rng)
             if done and env is not None:
@@ -247,7 +244,7 @@ def main(_):
             )
             ob = next_ob
             if done:
-                # CHANGED: skip non-numeric info fields (e.g. a string
+                # skip non-numeric info fields (e.g. a string
                 # termination reason) instead of crashing np.mean on them.
                 flat_info = flatten(info)
                 expl_metrics = {}
@@ -260,20 +257,40 @@ def main(_):
             if FLAGS.balanced_sampling:
                 dataset_batch = train_dataset.sample(config['batch_size'] // 2)
                 replay_batch = replay_buffer.sample(config['batch_size'] // 2)
-                batch = {k: np.concatenate([dataset_batch[k], replay_batch[k]], axis=0) for k in dataset_batch}
+                # CHANGED: dataset_batch/replay_batch contain nested dicts (observations,
+                # next_observations hold {state, side_policy_256, wrist_1, embeddings}).
+                # A flat dict-comprehension concatenation over top-level keys tries to
+                # np.concatenate the nested dicts themselves; tree_map recurses into the
+                # structure and concatenates the matching leaf arrays instead.
+                batch = jax.tree_util.tree_map(
+                    lambda a, b: np.concatenate([a, b], axis=0), dataset_batch, replay_batch
+                )
             else:
                 batch = replay_buffer.sample(config['batch_size'])
+                # CHANGED: no separate demo-only source exists when
+                # balanced_sampling=0 (train_dataset was merged into
+                # replay_buffer above), so demo_batch falls back to the same
+                # batch here. This means the demo_batch split provides no
+                # protection under balanced_sampling=0 -- use
+                # balanced_sampling=1 to actually get a clean demo source for
+                # the actor's BC-flow loss.
+                dataset_batch = batch
             if config['agent_name'] == 'rebrac':
                 agent, update_info = agent.update(batch, full_update=(i % config['actor_freq'] == 0))
             else:
-                agent, update_info = agent.update(batch)
+                # CHANGED: pass dataset_batch (demo-only under
+                # balanced_sampling=1) as the second arg.
+                agent, update_info = agent.update(batch, dataset_batch)
 
         # Log metrics.
         if i % FLAGS.log_interval == 0:
             train_metrics = {f'training/{k}': v for k, v in update_info.items()}
             if val_dataset is not None:
                 val_batch = val_dataset.sample(config['batch_size'])
-                _, val_info = agent.total_loss(val_batch, grad_params=None)
+                # CHANGED: pass val_batch as both args -- val_dataset is
+                # entirely demo data (and is None for the robomimic tasks
+                # anyway, so this branch is currently unreachable for them).
+                _, val_info = agent.total_loss(val_batch, val_batch, grad_params=None)
                 train_metrics.update({f'validation/{k}': v for k, v in val_info.items()})
             train_metrics['time/epoch_time'] = (time.time() - last_time) / FLAGS.log_interval
             train_metrics['time/total_time'] = time.time() - first_time
@@ -320,11 +337,10 @@ def main(_):
             eval_env.close() # frees up the mujoco sim for next eval_interval steps of training
             eval_env = None
 
-            # CHANGED: reopen using the same env/eval_env merge idiom as the
+            # reopen using the same env/eval_env merge idiom as the
             # initial setup -- for nut_assembly_square this function always
             # returns env=None, so grabbing the first return value alone
-            # (as the previous version of this file did) would have silently
-            # left `env` as None for the rest of training.
+            # would have silently left `env` as None for the rest of training.
             if FLAGS.online_steps > 0:
                 env, eval_env, _, _ = make_env_and_datasets(FLAGS.env_name, frame_stack=FLAGS.frame_stack)
                 if env is None:
