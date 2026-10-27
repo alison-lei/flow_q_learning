@@ -1,3 +1,5 @@
+# TEMP FILE TO TEST FUNCTIONS
+
 import robosuite
 import numpy as np
 import pickle

@@ -1,3 +1,5 @@
+# TEMP FILE TO TEST add_embeddings
+
 import robosuite
 import numpy as np
 import pickle

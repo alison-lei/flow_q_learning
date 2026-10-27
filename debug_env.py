@@ -1,3 +1,5 @@
+# TEMP FILE TO TEST ENVIRONMENT
+
 import numpy as np
 import pickle
 from envs import robomimic_utils
